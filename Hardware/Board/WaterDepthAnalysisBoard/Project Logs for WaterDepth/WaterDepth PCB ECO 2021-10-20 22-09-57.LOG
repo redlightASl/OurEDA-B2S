@@ -1,0 +1,17 @@
+Added Component: Designator=*13(R100)
+Add component. Clean all parameters for all variants
+Add component (AddParameter): Name = "BOM名称"; Value = "探针焊盘"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "学习资源"; Value = "www.ooocke.com"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "版权归属"; Value = "源创客"; VariantName = "[No Variations]"
+Added Component: Designator=*14(R100)
+Add component. Clean all parameters for all variants
+Add component (AddParameter): Name = "BOM名称"; Value = "探针焊盘"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "学习资源"; Value = "www.ooocke.com"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "版权归属"; Value = "源创客"; VariantName = "[No Variations]"
+Added Pin To Net: NetName=5V_B Pin=*14-1
+Added Net: Name=5V_B
+Added Pin To Net: NetName=5V Pin=*13-1
+Added Net: Name=5V
+Added Member To Class: ClassName=WaterDepth Member=Component *13 CS
+Added Member To Class: ClassName=WaterDepth Member=Component *14 CS
+Added Room: Name=WaterDepth

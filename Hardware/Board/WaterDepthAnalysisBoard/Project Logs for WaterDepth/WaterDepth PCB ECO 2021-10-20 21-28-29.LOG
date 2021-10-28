@@ -1,0 +1,33 @@
+Added Component: Designator=R9(R 0603_L)
+Add component. Clean all parameters for all variants
+Add component (AddParameter): Name = "BOM名称"; Value = "贴片电阻"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "学习资源"; Value = "www.ooocke.com"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "版权归属"; Value = "源创客"; VariantName = "[No Variations]"
+Added Component: Designator=R10(R 0603_L)
+Add component. Clean all parameters for all variants
+Add component (AddParameter): Name = "BOM名称"; Value = "贴片电阻"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "学习资源"; Value = "www.ooocke.com"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "版权归属"; Value = "源创客"; VariantName = "[No Variations]"
+Added Component: Designator=R11(R 0603_L)
+Add component. Clean all parameters for all variants
+Add component (AddParameter): Name = "BOM名称"; Value = "贴片电阻"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "学习资源"; Value = "www.ooocke.com"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "版权归属"; Value = "源创客"; VariantName = "[No Variations]"
+Added Component: Designator=R12(R 0603_L)
+Add component. Clean all parameters for all variants
+Add component (AddParameter): Name = "BOM名称"; Value = "贴片电阻"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "学习资源"; Value = "www.ooocke.com"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "版权归属"; Value = "源创客"; VariantName = "[No Variations]"
+Added Pin To Net: NetName=WD_SCL Pin=R9-1
+Added Pin To Net: NetName=3V3 Pin=R9-2
+Added Pin To Net: NetName=WD_SDA Pin=R10-1
+Added Pin To Net: NetName=3V3 Pin=R10-2
+Added Pin To Net: NetName=WD_SCL_B Pin=R11-1
+Added Pin To Net: NetName=3V3_B Pin=R11-2
+Added Pin To Net: NetName=WD_SDA_B Pin=R12-1
+Added Pin To Net: NetName=3V3_B Pin=R12-2
+Added Member To Class: ClassName=WaterDepth Member=Component R9 4.7K
+Added Member To Class: ClassName=WaterDepth Member=Component R10 4.7K
+Added Member To Class: ClassName=WaterDepth Member=Component R11 4.7K
+Added Member To Class: ClassName=WaterDepth Member=Component R12 4.7K
+Added Room: Name=WaterDepth
