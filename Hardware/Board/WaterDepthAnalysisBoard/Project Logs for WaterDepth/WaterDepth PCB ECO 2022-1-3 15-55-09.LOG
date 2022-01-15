@@ -1,0 +1,34 @@
+Removed Pin From Net: NetName=GND Pin=DE1-1
+Removed Pin From Net: NetName=NetC4_2 Pin=DE1-2
+Removed Pin From Net: NetName=GND Pin=DE4-1
+Removed Pin From Net: NetName=NetC9_2 Pin=DE4-2
+Removed Member From Class: ClassName=WaterDepth Member=DE4
+Added Component: Designator=TP5(TEST 1)
+Add component. Clean all parameters for all variants
+Add component (AddParameter): Name = "BOM名称"; Value = "测试点"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "学习资源"; Value = "www.ooocke.com"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "版权归属"; Value = "源创客"; VariantName = "[No Variations]"
+Added Component: Designator=TP6(TEST 1)
+Add component. Clean all parameters for all variants
+Add component (AddParameter): Name = "BOM名称"; Value = "测试点"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "学习资源"; Value = "www.ooocke.com"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "版权归属"; Value = "源创客"; VariantName = "[No Variations]"
+Added Component: Designator=TP7(TEST 1)
+Add component. Clean all parameters for all variants
+Add component (AddParameter): Name = "BOM名称"; Value = "测试点"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "学习资源"; Value = "www.ooocke.com"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "版权归属"; Value = "源创客"; VariantName = "[No Variations]"
+Added Component: Designator=TP8(TEST 1)
+Add component. Clean all parameters for all variants
+Add component (AddParameter): Name = "BOM名称"; Value = "测试点"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "学习资源"; Value = "www.ooocke.com"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "版权归属"; Value = "源创客"; VariantName = "[No Variations]"
+Added Pin To Net: NetName=NetC4_2 Pin=TP5-1
+Added Pin To Net: NetName=GND Pin=TP6-1
+Added Pin To Net: NetName=NetC9_2 Pin=TP7-1
+Added Pin To Net: NetName=GND Pin=TP8-1
+Added Member To Class: ClassName=WaterDepth Member=Component TP5 TEST
+Added Member To Class: ClassName=WaterDepth Member=Component TP6 TEST
+Added Member To Class: ClassName=WaterDepth Member=Component TP7 TEST
+Added Member To Class: ClassName=WaterDepth Member=Component TP8 TEST
+Added Room: Name=WaterDepth
