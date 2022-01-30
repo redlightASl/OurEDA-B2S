@@ -1,0 +1,51 @@
+{
+	"signal": [
+		{
+			"name": "clk",
+			"wave": "xP.............................x"
+		},
+		{
+			"name": "Data",
+			"wave": "023.3.4.5.3.3.2.2.2.2.2.2.4.322x",
+			"data": [
+				"0x25",
+				"Target",
+				"Move",
+				"Verti",
+				"Light",
+				"Pan",
+				"Trans",
+				"Arm1",
+				"Arm2",
+				"Arm3",
+				"Arm4",
+				"Arm5",
+				"Arm6",
+				"PWM",
+				"Mode",
+				"Sum",
+				"0x21"
+			]
+		},
+        {
+            "name":"Side-Push",
+            "wave":"xxxxxxxxxxxxxxxxxxxxxxxxxxxx1xxx"
+        },
+        {
+            "name":"Direct",
+            "wave":"xxxxxxxxxxxxxxxxxxxxxxxxxxxx5xxx",
+            "data":["0x02"]
+        },
+        {
+            "name":"Suspend",
+            "wave":"xxxxxxxxxxxxxxxxxxxxxxxxxxxx5xxx",
+            "data":["0x04"]
+        },
+        {
+            "name":"Relay",
+            "wave":"xxxxxxxxxxxxxxxxxxxxxxxxxxxx5xxx",
+            "data":["0x08"]
+        }
+	],
+	"config": { "hscale": 1 }
+}
