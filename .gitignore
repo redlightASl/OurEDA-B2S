@@ -1,8 +1,7 @@
 ### VSCode ###
-/.vscode/
+.vscode/
 
 
 ### AD Docs ###
-/__Previews/
-/History/
-/Libs/
+__Previews/
+History/
