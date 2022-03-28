@@ -1,10 +1,10 @@
 /**
   ******************************************************************************
-  * @file     Project/STM8L10x_StdPeriph_Templates/main.c
-  * @author   MCD Application Team
+  * @file    main.c
+  * @author  MCD Application Team
   * @version V1.2.1
   * @date    30-September-2014
-  * @brief    This file contains the firmware main function.
+  * @brief   Main program body
   ******************************************************************************
   * @attention
   *
@@ -16,8 +16,8 @@
   *
   *        http://www.st.com/software_license_agreement_liberty_v2
   *
-  * Unless required by applicable law or agreed to in writing, software
-  * distributed under the License is distributed on an "AS IS" BASIS,
+  * Unless required by applicable law or agreed to in writing, software 
+  * distributed under the License is distributed on an "AS IS" BASIS, 
   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   * See the License for the specific language governing permissions and
   * limitations under the License.
@@ -25,23 +25,16 @@
   ******************************************************************************
   */
 
-  /* Includes ------------------------------------------------------------------*/
+/* Includes ------------------------------------------------------------------*/
 #include "stm8l10x.h"
-#include "stm8l10x_gpio.h"
-#include "stm8l10x_exti.h"
-#include "stm8l10x_tim2.h"
-#include "stm8l10x_iwdg.h"
-#include "stm8l10x_i2c.h"
-#include "stm8l10x_usart.h"
-#include "main.h"
 #include "stdio.h"
-
-/** @addtogroup STM8L10x_StdPeriph_Templates
+#include "main.h"
+/**
+  * @addtogroup USART_Printf
   * @{
   */
-
-  /* Private typedef -----------------------------------------------------------*/
-  /* Private define ------------------------------------------------------------*/
+/* Private typedef -----------------------------------------------------------*/
+/* Private define ------------------------------------------------------------*/
 #ifdef _RAISONANCE_
 #define PUTCHAR_PROTOTYPE int putchar (char c)
 #define GETCHAR_PROTOTYPE int getchar (void)
@@ -53,274 +46,328 @@
 #define GETCHAR_PROTOTYPE int getchar (void)
 #endif
 
-#define RELOAD_VALUE 254
-#define LSI_PERIOD_NUMBERS 10
-
-#define LED_GPIO_PORT GPIOB
-#define LED_GPIO_PINS GPIO_Pin_2
-
-#define KEY_GPIO_PORT GPIOB
-#define KEY_GPIO_PINS GPIO_Pin_0
 /* Private macro -------------------------------------------------------------*/
+extern uint8_t HEADER_ADDRESS_Read = (((SLAVE_ADDRESS & 0xFF00) >> 7) | 0xF1);
+extern uint8_t HEADER_ADDRESS_Write;
+
 /* Private variables ---------------------------------------------------------*/
-__IO uint32_t LsiFreq = 0;
-extern __IO uint32_t Capture;
-extern __IO uint16_t CaptureState;
+__IO uint8_t Rx_Idx = 0;
+__IO uint8_t Tx_Idx = 0;
+
+__IO uint8_t NumByteToRead = BUFFERSIZE;
+__IO uint8_t NumOfBytes = BUFFERSIZE;
+
+TestStatus TransferStatus1 = FAILED;
+
+__IO uint8_t TxBuffer[BUFFERSIZE];
+__IO uint8_t RxBuffer[BUFFERSIZE];
+
 /* Private function prototypes -----------------------------------------------*/
-inline void Delay(uint16_t nCount);
-static inline void SysClock_Init(void);
-static inline void IWDG_Config(void);
-uint32_t LSIMeasurment(void);
-static inline void USART_Config(void);
-static inline void I2C_Config(void);
-static inline void Hardware_Init(void);
+TestStatus Buffercmp(uint8_t* pBuffer1, uint8_t* pBuffer2, uint16_t BufferLength);
+uint8_t crc4(uint16_t n_prom[]);
+void Delay (uint16_t nCount);
+
+static void USART_Config(void);
+
+static void I2C_Config(void);
+void I2C_WriteByte(uint8_t addr, uint8_t data);
+uint8_t I2C_ReadByte(uint8_t addr);
+
+
+static void MS5837_Init(void);
+static void MS5837_GetData(uint32_t *pressure, uint32_t *temperature, uint32_t *depth, uint32_t *altitude);
+static uint8_t MS5837_Check(void);
+static void MS5837_SetFluidDensity(uint16_t density);
 
 /* Private functions ---------------------------------------------------------*/
-PUTCHAR_PROTOTYPE
-{
-	/* Write a character to the USART */
-	USART_SendData8(c);
-	/* Loop until the end of transmission */
-	while (USART_GetFlagStatus(USART_FLAG_TXE) == RESET)
-	{
-		_nop_();
-	}
-	return (c);
-}
 
+/**
+  * @brief  Main program.
+  * @param  None
+  * @retval None
+  */
 void main(void)
 {
-	/* check IWDG flag */
-	if (RST_GetFlagStatus(RST_FLAG_IWDGF) != RESET)
-	{
-		/* IWDGF flag set */
-		/* Turn on LED */
-		GPIO_SetBits(LED_GPIO_PORT, LED_GPIO_PINS);
-		/* Clear IWDGF Flag */
-		RST_ClearFlag(RST_FLAG_IWDGF);
-	}
-	else
-	{
-		/* IWDGF flag is not set */
-		/* Turn off LED */
-		GPIO_ResetBits(LED_GPIO_PORT, LED_GPIO_PINS);
-	}
+		uint32_t pressure=0;
+		uint32_t temperature=0;
+		uint32_t depth=0;
+		uint32_t altitude=0;
+		
+    /* USART Configuration ---------------------------------------------------*/
+		disableInterrupts();
+		GPIO_Init(LED_GPIO_PORT, LED_GPIO_PINS, GPIO_Mode_Out_PP_Low_Fast);
+    USART_Config();
+		I2C_Config();
+		enableInterrupts();
 
-	Hardware_Init();
+		MS5837_Init();
+    printf("Board Init!\r\n");
 
-	printf("System Running!\r\n");
-
-	/* Infinite loop */
-	while (1)
-	{
-		GPIO_ToggleBits(LED_GPIO_PORT, LED_GPIO_PINS);
-
-		IWDG_ReloadCounter();
-	}
-}
-
-inline void Delay(__IO uint16_t nCount)
-{
-	/* Decrement nCount value */
-	while (nCount != 0)
-	{
-		nCount--;
-	}
-}
-
-static inline void SysClock_Init(void)
-{
-	/* High speed internal clock prescaler: 1*/
-	CLK_MasterPrescalerConfig(CLK_MasterPrescaler_HSIDiv1);
-
-	/* Enable TIM2 clock */
-	CLK_PeripheralClockConfig(CLK_Peripheral_TIM2, ENABLE);
-
-	/* Enable AWU clock to get write access for AWU registers */
-	CLK_PeripheralClockConfig(CLK_Peripheral_AWU, ENABLE);
-}
-
-static void IWDG_Config(void)
-{
-	/* Enable IWDG (the LSI oscillator will be enabled by hardware) */
-	IWDG_Enable();
-
-	/* IWDG timeout equal to 214 ms (the timeout may varies due to LSI frequency
-	   dispersion) */
-	   /* Enable write access to IWDG_PR and IWDG_RLR registers */
-	IWDG_WriteAccessCmd(IWDG_WriteAccess_Enable);
-
-	/* IWDG configuration: IWDG is clocked by LSI = 38KHz */
-	IWDG_SetPrescaler(IWDG_Prescaler_32);
-
-	/* IWDG timeout equal to 214.7 ms (the timeout may varies due to LSI frequency dispersion) */
-	/* IWDG timeout = (RELOAD_VALUE + 1) * Prescaler / LSI
-					= (254 + 1) * 32 / 38 000
-					= 214.7 ms */
-	IWDG_SetReload((uint8_t)RELOAD_VALUE);
-
-	/* Reload IWDG counter */
-	IWDG_ReloadCounter();
-}
-
-uint32_t LSIMeasurment(void)
-{
-	uint8_t icfilter = 0;
-	uint32_t LSICurrentPeriod = 0;
-	uint32_t LSIMeasuredFrequencyCumul = 0;
-	uint16_t LSIMeasuredFrequency = 0;
-	uint8_t LSIPeriodCounter = 0;
-
-	/* Enable the LSI measurement: LSI clock connected to timer Input Capture 1 */
-	AWU->CSR |= AWU_CSR_MSR;
-
-	/* TIM2 configuration: Input Capture mode */
-	/* Configure TIM2 channel 1 in input capture mode */
-	/* The signal in input is divided and not filtered */
-	/* The capture occurs when a rising edge is detected on TIM2 channel 1 */
-	TIM2_ICInit(
-		TIM2_Channel_1, 
-		TIM2_ICPolarity_Rising, 
-		TIM2_ICSelection_DirectTI,
-		TIM2_ICPSC_Div8, 
-		icfilter
-	);
-
-	LSIPeriodCounter = 0;
-	/**************************** START of LSI Measurement **********************/
-	while (LSIPeriodCounter <= LSI_PERIOD_NUMBERS)
-	{
-		CaptureState = 1;
-		/* Clear all TM2 flags */
-		TIM2_GenerateEvent(TIM2_EventSource_Update);
-		TIM2->SR1 = 0;
-		TIM2->SR2 = 0;
-		/* Enable capture 1 interrupt */
-		TIM2_ITConfig(TIM2_IT_CC1, ENABLE);
-		/* Enable TIM2 */
-		TIM2_Cmd(ENABLE);
-
-		while (CaptureState != 255);
-
-		if (LSIPeriodCounter != 0)
-		{
-			/* Compute the frequency value */
-			LSICurrentPeriod = (uint32_t)8 * (HSI_VALUE / Capture);
-			/* Add the current frequency to previous cumulation */
-			LSIMeasuredFrequencyCumul = LSIMeasuredFrequencyCumul + LSICurrentPeriod;
+    while (1)
+    {
+			GPIO_ToggleBits(LED_GPIO_PORT, LED_GPIO_PINS);
+			MS5837_GetData(&pressure, &temperature, &depth, &altitude);
+			printf("Data:%d\t%d\t%d\t%d\r\n", pressure, temperature, depth, altitude);
+			printf("hello\r\n");
+			Delay(0xFFFF);
 		}
-		LSIPeriodCounter++;
-	}
-	/**************************** END of LSI Measurement ************************/
-
-	/* Compute the average of LSI frequency value */
-	LSIMeasuredFrequency = (uint16_t)(LSIMeasuredFrequencyCumul / LSI_PERIOD_NUMBERS);
-
-	/* Disable the LSI measurement: LSI clock disconnected from timer Input Capture 1 */
-	AWU->CSR &= (uint8_t)(~AWU_CSR_MSR);
-
-	/* Return the LSI frequency */
-	return (uint16_t)(LSIMeasuredFrequency);
 }
 
-static inline void USART_Config(void)
+/**
+  * @brief  Configure USART peripheral to print characters on Hyperteminal
+  * @param  None
+  * @retval None
+  */
+static void USART_Config(void)
 {
-	/*Set the USART RX and USART TX at high level*/
-	GPIO_ExternalPullUpConfig(GPIOC, GPIO_Pin_3 | GPIO_Pin_4, ENABLE);
-
-	/* Enable USART clock */
-	CLK_PeripheralClockConfig(CLK_Peripheral_USART, ENABLE);
-	USART_DeInit();
-
-	/* USART configuration ------------------------------------------------------*/
-	/* USART configured as follow:
-		  - BaudRate = 115200 baud
-		  - Word Length = 8 Bits
-		  - One Stop Bit
-		  - No parity
-		  - Receive and transmit enabled
-	*/
-	USART_Init(
-		(uint32_t)115200,
-		USART_WordLength_8D,
-		USART_StopBits_1,
-		USART_Parity_No,
-		(USART_Mode_TypeDef)(USART_Mode_Rx | USART_Mode_Tx)
-	);
-
-	/* Enable the USART Transmit interrupt: this interrupt is generated when the
-	   USART transmit data register is empty */
-	// USART_ITConfig(USART_IT_TXE, ENABLE);
-	/* Enable the USART Receive interrupt: this interrupt is generated when the
-	   USART receive data register is not empty */
-	USART_ITConfig(USART_IT_RXNE, ENABLE);
-
-	/* Set the USART Address */
-	// USART_SetAddress(0x2);
-
-	/* Enable the USART */
-	USART_Cmd(ENABLE);
+    /* High speed internal clock prescaler: 1*/
+    CLK_MasterPrescalerConfig(CLK_MasterPrescaler_HSIDiv1);
+ 
+     /*Set the USART RX and USART TX at high level*/
+    GPIO_ExternalPullUpConfig(GPIOC,GPIO_Pin_3|GPIO_Pin_4, ENABLE);
+    
+    /* Enable USART clock */
+    CLK_PeripheralClockConfig(CLK_Peripheral_USART, ENABLE);
+    
+    USART_DeInit();
+    /* USART configuration ------------------------------------------------------*/
+    /* USART configured as follow:
+          - BaudRate = 115200 baud  
+          - Word Length = 8 Bits
+          - One Stop Bit
+          - No parity
+          - Receive and transmit enabled
+    */
+     USART_Init(
+								(uint32_t)115200, 
+								USART_WordLength_8D, 
+								USART_StopBits_1,
+                USART_Parity_No, 
+								(USART_Mode_TypeDef)(USART_Mode_Rx | USART_Mode_Tx)
+								);
 }
 
-static inline void I2C_Config(void)
+static void I2C_Config(void)
 {
-	CLK_PeripheralClockConfig(CLK_Peripheral_I2C, ENABLE);
-	I2C_DeInit();
+	uint8_t i = 0;
+	
+	/* I2C  clock Enable*/
+  CLK_PeripheralClockConfig(CLK_Peripheral_I2C, ENABLE);
 
-#ifdef I2C_slave_7Bits_Address
-	I2C_Init(
-		100000,
-		SLAVE_ADDRESS,
-		I2C_DutyCycle_2,
-		I2C_Ack_Enable,
-		I2C_AcknowledgedAddress_7bit
-	);
+#ifdef FAST_I2C_MODE
+  /* system_clock / 1 */
+    CLK_MasterPrescalerConfig(CLK_MasterPrescaler_HSIDiv1);
 #else
-	I2C_Init(
-		100000,
-		SLAVE_ADDRESS,
-		I2C_DutyCycle_2,
-		I2C_Ack_Enable,
-		I2C_AcknowledgedAddress_10bit
-	);
+  /* system_clock / 2 */
+    CLK_MasterPrescalerConfig(CLK_MasterPrescaler_HSIDiv2);
 #endif
+	
+	/* Initialize I2C peripheral */
+  I2C_Init(I2C_SPEED, 0xA0,
+           I2C_DutyCycle_2, I2C_Ack_Enable, I2C_AcknowledgedAddress_7bit);
 
-	I2C_ITConfig((I2C_IT_TypeDef)(I2C_IT_ERR | I2C_IT_EVT | I2C_IT_BUF), ENABLE);
-
-	/* Enable the I2C */
+	/* Enable Buffer and Event Interrupt*/
+  I2C_ITConfig((I2C_IT_TypeDef)(I2C_IT_EVT | I2C_IT_BUF) , ENABLE);
+	
+	for (i = 0; i < BUFFERSIZE; i++)
+	{
+		TxBuffer[i] = 0;
+		RxBuffer[i] = 0;
+	}
+	
 	I2C_Cmd(ENABLE);
 }
 
-static inline void Hardware_Init(void)
+static void MS5837_Init(void)
 {
-	/* init sysclk */
-	SysClock_Init();
-
-	/* get measured LSI frequency */
-	LsiFreq = LSIMeasurment();
-
-	/* init usart */
-	USART_Config();
-
-	/* init i2c */
-	I2C_Config();
-
-	/* init LED */
-	GPIO_Init(LED_GPIO_PORT, LED_GPIO_PINS, GPIO_Mode_Out_PP_Low_Fast);
-
-	/* init KEY */
-	GPIO_Init(KEY_GPIO_PORT, KEY_GPIO_PINS, GPIO_Mode_In_PU_IT);
-	EXTI_SetPinSensitivity(EXTI_Pin_0, EXTI_Trigger_Falling_Low);
-
-	/* init IWDG */
-	IWDG_Config();
-
-	/* enable interrupt */
-	enableInterrupts();
+	while(!MS5837_Check())
+	{
+		printf("Init Failed\r\n");
+		printf("Retry!\r\n");
+		printf("\r\n");
+		Delay(0x7FFF);
+	}
+	
+	MS5837_SetFluidDensity(1029); /* 997 for freshwater, 1029 for seawater */
 }
 
-#ifdef  USE_FULL_ASSERT
+static void MS5837_GetData(uint32_t *pressure, uint32_t *temperature, uint32_t *depth, uint32_t *altitude)
+{
 
+}
+
+static void MS5837_SetFluidDensity(uint16_t density)
+{
+
+}
+
+static uint8_t MS5837_Check(void)
+{
+	uint8_t i = 0;
+	uint16_t temp[8];
+	uint8_t crcRead = 0;
+	uint8_t crcCalculated = 0;
+	
+	I2C_WriteByte(MS5837_ADDR, MS5837_RESET);
+	Delay(0x1000);
+	
+	for (i = 0; i < 7; i++)
+	{
+		I2C_WriteByte(MS5837_ADDR, MS5837_PROM_READ + i * 2);
+		temp[i] = (I2C_ReadByte(MS5837_ADDR) << 8) | (I2C_ReadByte(MS5837_ADDR));
+	}
+	
+	crcRead = temp[0] >> 12;
+	crcCalculated = crc4(temp);
+	
+	if(crcCalculated == crcRead)
+	{
+		return 1; /* success */
+	}
+	else 
+	{
+		return 0; /* fail */
+	}
+}
+
+void I2C_WriteByte(uint8_t addr, uint8_t data)
+{
+	while(I2C_GetFlagStatus(I2C_FLAG_BUSY));
+
+	I2C_GenerateSTART(ENABLE);
+	while(!I2C_CheckEvent(I2C_EVENT_MASTER_MODE_SELECT)); /* EV5, master mode */
+
+	I2C_Send7bitAddress(MASTER_ADDR, I2C_Direction_Transmitter);
+	while(!I2C_CheckEvent(I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)); /* EV6 */
+
+	I2C_SendData(addr);
+	while (!I2C_CheckEvent(I2C_EVENT_MASTER_BYTE_TRANSMITTED));
+
+	I2C_SendData(data);
+	while (!I2C_CheckEvent(I2C_EVENT_MASTER_BYTE_TRANSMITTED));
+	I2C_AcknowledgeConfig(ENABLE);
+	
+	I2C_GenerateSTOP(ENABLE);
+}
+
+uint8_t I2C_ReadByte(uint8_t addr)
+{
+	uint8_t ret;
+	while(I2C_GetFlagStatus(I2C_FLAG_BUSY));
+	
+	I2C_GenerateSTART( ENABLE);
+	while(!I2C_CheckEvent(I2C_EVENT_MASTER_MODE_SELECT)); /* EV5, master mode */
+	
+	I2C_Send7bitAddress(MASTER_ADDR, I2C_Direction_Transmitter);
+	while(!I2C_CheckEvent(I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED));
+		
+	I2C_SendData(addr); /* Reg Address */
+	while (!I2C_CheckEvent( I2C_EVENT_MASTER_BYTE_TRANSMITTED));
+
+	I2C_GenerateSTART(ENABLE);
+	while(!I2C_CheckEvent( I2C_EVENT_MASTER_MODE_SELECT)); /* EV5, master mode */
+		
+	I2C_Send7bitAddress(MASTER_ADDR, I2C_Direction_Receiver);
+	while(!I2C_CheckEvent(I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED));
+
+	while(!I2C_CheckEvent(I2C_EVENT_MASTER_BYTE_RECEIVED));  
+
+	ret = I2C_ReceiveData(); /* Read I2C data */
+	I2C_AcknowledgeConfig(DISABLE);
+	I2C_GenerateSTOP(ENABLE); 
+	return ret;
+} 
+
+/**
+  * @brief  Inserts a delay time.
+  * @param  nCount: specifies the delay time length.
+  * @retval None
+  */
+void Delay(__IO uint16_t nCount)
+{
+  /* Decrement nCount value */
+  while (nCount != 0)
+  {
+    nCount--;
+  }
+}
+
+uint8_t crc4(uint16_t n_prom[])
+{
+	uint16_t n_rem = 0;
+	uint8_t i = 0;
+	uint8_t n_bit = 8;
+	
+	n_prom[0] = ((n_prom[0]) & 0x0FFF);
+	n_prom[7] = 0;
+
+	for (i = 0 ;i < 16; i++)
+	{
+		if (i%2 == 1)
+		{
+			n_rem ^= (uint16_t)((n_prom[i>>1]) & 0x00FF);
+		}
+		else
+		{
+			n_rem ^= (uint16_t)(n_prom[i>>1] >> 8);
+		}
+		
+		for (n_bit = 8;n_bit > 0 ;n_bit--)
+		{
+			if (n_rem & 0x8000)
+			{
+				n_rem = (n_rem << 1) ^ 0x3000;
+			} 
+			else 
+			{
+				n_rem = (n_rem << 1);
+			}
+		}
+	}
+	n_rem = ((n_rem >> 12) & 0x000F);
+
+	return n_rem ^ 0x00;
+}
+
+/**
+  * @brief  Compares two buffers.
+  * @param  pBuffer1, pBuffer2: buffers to be compared.
+  * @param  BufferLength: buffer's length
+  * @retval PASSED: pBuffer1 identical to pBuffer2
+  *   FAILED: pBuffer1 differs from pBuffer2
+  */
+TestStatus Buffercmp(uint8_t* pBuffer1, uint8_t* pBuffer2, uint16_t BufferLength)
+{
+  while (BufferLength--)
+  {
+    if (*pBuffer1 != *pBuffer2)
+    {
+      return FAILED;
+    }
+    pBuffer1++;
+    pBuffer2++;
+  }
+  return PASSED;
+}
+
+/**
+  * @brief  Retargets the C library printf function to the USART.
+  * @param  c Character to send
+  * @retval char Character sent
+  */
+PUTCHAR_PROTOTYPE
+{
+  /* Write a character to the USART */
+  USART_SendData8(c);
+  
+  /* Loop until the end of transmission */
+  while (USART_GetFlagStatus(USART_FLAG_TXE) == RESET);
+
+  return (c);
+}
+
+
+#ifdef  USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
   *   where the assert_param error has occurred.
@@ -329,14 +376,14 @@ static inline void Hardware_Init(void)
   * @retval : None
   */
 void assert_failed(uint8_t* file, uint32_t line)
-{
-	/* User can add his own implementation to report the file name and line number,
-	   ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+{ 
+  /* User can add his own implementation to report the file name and line number,
+     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
 
-	   /* Infinite loop */
-	while (1)
-	{
-	}
+  /* Infinite loop */
+  while (1)
+  {
+  }
 }
 #endif
 
@@ -344,4 +391,4 @@ void assert_failed(uint8_t* file, uint32_t line)
   * @}
   */
 
-  /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

@@ -1,0 +1,4 @@
+Record=TopLevelDocument|FileName=CtrlCarbinBoard_Common.SchDoc|SheetNumber= 
+Record=NoMainPathDocument|SourceDocument=CtrlCarbinBoard_Common.SchDoc|FileName=CtrlCarbinBoard_MCU.SchDoc|SheetNumber= 
+Record=NoMainPathDocument|SourceDocument=CtrlCarbinBoard_Common.SchDoc|FileName=CtrlCarbinBoard_NetConnection.SchDoc|SheetNumber= 
+Record=NoMainPathDocument|SourceDocument=CtrlCarbinBoard_Common.SchDoc|FileName=CtrlCarbinBoard_Processor.SchDoc|SheetNumber= 

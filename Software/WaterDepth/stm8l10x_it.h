@@ -1,10 +1,10 @@
 /**
   ******************************************************************************
-  * @file     Project/STM8L10x_StdPeriph_Templates/stm8l10x_it.h
-  * @author   MCD Application Team
-  * @version  V1.2.1
-  * @date     30-September-2014
-  * @brief    This file contains the external declarations of the interrupt routines.
+  * @file    stm8l10x_it.h
+  * @author  MCD Application Team
+  * @version V1.2.1
+  * @date    30-September-2014
+  * @brief   This file contains the external declarations of the interrupt routines.
   ******************************************************************************
   * @attention
   *

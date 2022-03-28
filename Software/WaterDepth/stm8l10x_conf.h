@@ -1,10 +1,10 @@
 /**
   ******************************************************************************
-  * @file     Project/STM8L10x_StdPeriph_Templates/stm8l10x_conf.h
-  * @author   MCD Application Team
-  * @version  V1.2.1
-  * @date     30-September-2014
-  * @brief    This file is used to configure the Library.
+  * @file    stm8l10x_conf.h
+  * @author  MCD Application Team
+  * @version V1.2.1
+  * @date    30-September-2014
+  * @brief   This file is used to configure the Library.
   ******************************************************************************
   * @attention
   *
@@ -32,7 +32,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm8l10x.h"
 
-/* Uncomment/Comment the line below to enable/disable peripheral header file inclusion */
+/* Uncomment the line below to enable peripheral header file inclusion */
 #include "stm8l10x_awu.h"
 #include "stm8l10x_beep.h"
 #include "stm8l10x_clk.h"
@@ -54,9 +54,10 @@
 
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
+
 /* Uncomment the line below to expanse the "assert_param" macro in the 
    Standard Peripheral Library drivers code */
-/* #define USE_FULL_ASSERT    1 */
+//#define USE_FULL_ASSERT    1
 
 /* Exported macro ------------------------------------------------------------*/
 #ifdef  USE_FULL_ASSERT

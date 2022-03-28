@@ -1,0 +1,44 @@
+Removed Pin From Net: NetName=JTDI Pin=JP5-1
+Removed Pin From Net: NetName=JTDO Pin=JP5-2
+Removed Pin From Net: NetName=SWCLK Pin=JP5-3
+Removed Pin From Net: NetName=SWDIO Pin=JP5-4
+Removed Pin From Net: NetName=JRST Pin=JP5-5
+Removed Pin From Net: NetName=GND Pin=JP5-6
+Removed Member From Class: ClassName=WaterDepthAnalysisBoardv2 Member=JP5
+Added Component: Designator=*1(R100)
+Add component (AddParameter): Name = "BOM名称"; Value = "探针焊盘"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "学习资源"; Value = "www.ooocke.com"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "版权归属"; Value = "源创客"; VariantName = "[No Variations]"
+Added Component: Designator=*2(R100)
+Add component (AddParameter): Name = "BOM名称"; Value = "探针焊盘"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "学习资源"; Value = "www.ooocke.com"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "版权归属"; Value = "源创客"; VariantName = "[No Variations]"
+Added Component: Designator=*3(R100)
+Add component (AddParameter): Name = "BOM名称"; Value = "探针焊盘"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "学习资源"; Value = "www.ooocke.com"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "版权归属"; Value = "源创客"; VariantName = "[No Variations]"
+Added Component: Designator=*4(R100)
+Add component (AddParameter): Name = "BOM名称"; Value = "探针焊盘"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "学习资源"; Value = "www.ooocke.com"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "版权归属"; Value = "源创客"; VariantName = "[No Variations]"
+Added Component: Designator=*5(R100)
+Add component (AddParameter): Name = "BOM名称"; Value = "探针焊盘"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "学习资源"; Value = "www.ooocke.com"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "版权归属"; Value = "源创客"; VariantName = "[No Variations]"
+Added Component: Designator=*(R100)
+Add component (AddParameter): Name = "BOM名称"; Value = "探针焊盘"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "学习资源"; Value = "www.ooocke.com"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "版权归属"; Value = "源创客"; VariantName = "[No Variations]"
+Added Pin To Net: NetName=JTDI Pin=*1-1
+Added Pin To Net: NetName=JTDO Pin=*2-1
+Added Pin To Net: NetName=SWCLK Pin=*3-1
+Added Pin To Net: NetName=SWDIO Pin=*4-1
+Added Pin To Net: NetName=JRST Pin=*5-1
+Added Pin To Net: NetName=GND Pin=*-1
+Added Member To Class: ClassName=WaterDepthAnalysisBoardv2 Member=Component *1 CS
+Added Member To Class: ClassName=WaterDepthAnalysisBoardv2 Member=Component *2 CS
+Added Member To Class: ClassName=WaterDepthAnalysisBoardv2 Member=Component *3 CS
+Added Member To Class: ClassName=WaterDepthAnalysisBoardv2 Member=Component *4 CS
+Added Member To Class: ClassName=WaterDepthAnalysisBoardv2 Member=Component *5 CS
+Added Member To Class: ClassName=WaterDepthAnalysisBoardv2 Member=Component * CS
+Added Room: Name=WaterDepthAnalysisBoardv2
