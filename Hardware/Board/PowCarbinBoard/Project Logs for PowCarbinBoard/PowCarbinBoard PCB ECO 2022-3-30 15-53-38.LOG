@@ -1,0 +1,33 @@
+Removed Pin From Net: NetName=NetJ6_1 Pin=JP3-1
+Removed Pin From Net: NetName=NetJ6_2 Pin=JP3-2
+Removed Pin From Net: NetName=NetJ13_7 Pin=M1-6
+Removed Pin From Net: NetName=NetJ13_6 Pin=M1-9
+Removed Pin From Net: NetName=NetM1_31 Pin=M1-31
+Removed Pin From Net: NetName=NetM1_34 Pin=M1-34
+Removed Pin From Net: NetName=NetM1_45 Pin=M1-45
+Removed Pin From Net: NetName=NetM1_46 Pin=M1-46
+Removed Pin From Net: NetName=NetM1_34 Pin=R1-1
+Removed Pin From Net: NetName=NetM1_31 Pin=R2-1
+Removed Pin From Net: NetName=NetM1_45 Pin=R3-1
+Removed Pin From Net: NetName=NetM1_46 Pin=R4-1
+Added Pin To Net: NetName=NetM1_46 Pin=JP3-1
+Added Pin To Net: NetName=NetM1_45 Pin=JP3-2
+Added Pin To Net: NetName=NetM1_34 Pin=M1-6
+Added Pin To Net: NetName=NetM1_31 Pin=M1-9
+Added Pin To Net: NetName=NetJ13_7 Pin=M1-31
+Added Pin To Net: NetName=NetJ13_6 Pin=M1-34
+Added Pin To Net: NetName=NetM1_46 Pin=M1-45
+Added Pin To Net: NetName=NetM1_45 Pin=M1-46
+Added Pin To Net: NetName=NetM1_31 Pin=R1-1
+Added Pin To Net: NetName=NetM1_34 Pin=R2-1
+Added Pin To Net: NetName=NetM1_46 Pin=R3-1
+Added Pin To Net: NetName=NetM1_45 Pin=R4-1
+Change Net Name : Old Net Name=NetM1_31 New Net Name=NetM1_9
+Change Net Name : Old Net Name=NetM1_34 New Net Name=NetM1_6
+Change Net Name : Old Net Name=NetM1_45 New Net Name=NetJP3_2
+Change Net Name : Old Net Name=NetM1_46 New Net Name=NetJP3_1
+Added Room: Name=Connect
+Added Room: Name=Isolation
+Added Room: Name=MCU
+Added Room: Name=PowCarbinBoard_General
+Added Room: Name=Sensor

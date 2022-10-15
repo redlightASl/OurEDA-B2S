@@ -6,3 +6,13 @@
 
 系统架构图如`Doc/OurEDA-B2S`所示
 
+## 子模块Submodule
+
+该项目衍生出的仓库包括
+
+[小体积水深解算板](https://github.com/redlightASl/ROV_SensorBoard)
+
+[AD常用封装库整理](https://github.com/redlightASl/Lib-ADP)
+
+
+

@@ -1,0 +1,29 @@
+Removed Pin From Net: NetName=+12 Pin=*1-5
+Removed Pin From Net: NetName=GND Pin=C16-1
+Removed Pin From Net: NetName=+5 Pin=C16-2
+Removed Pin From Net: NetName=GND Pin=C17-1
+Removed Pin From Net: NetName=HLKVCC33 Pin=DE1-1
+Removed Pin From Net: NetName=+5 Pin=E1-1
+Removed Pin From Net: NetName=GND Pin=E1-2
+Removed Pin From Net: NetName=GND Pin=E2-2
+Removed Pin From Net: NetName=GND Pin=R13-1
+Removed Pin From Net: NetName=+5 Pin=U2-1
+Removed Pin From Net: NetName=GND Pin=U2-2
+Removed Pin From Net: NetName=+5 Pin=U2-4
+Removed Member From Class: ClassName=Designator Member=C16
+Removed Member From Class: ClassName=Designator Member=C17
+Removed Member From Class: ClassName=Designator Member=C21
+Removed Member From Class: ClassName=Designator Member=DE1
+Removed Member From Class: ClassName=Designator Member=DE3
+Removed Member From Class: ClassName=Designator Member=E1
+Removed Member From Class: ClassName=Designator Member=E2
+Removed Member From Class: ClassName=Designator Member=L1
+Removed Member From Class: ClassName=Designator Member=R13
+Removed Member From Class: ClassName=Designator Member=R14
+Removed Member From Class: ClassName=Designator Member=U2
+Added Pin To Net: NetName=HLKVCC33 Pin=DE4-2
+Change Net Name : Old Net Name=HLKVCC33 New Net Name=+3.3E
+Added Room: Name=CtrlCarbinBoard_Common
+Added Room: Name=Designator
+Added Room: Name=Designator
+Added Room: Name=Designator

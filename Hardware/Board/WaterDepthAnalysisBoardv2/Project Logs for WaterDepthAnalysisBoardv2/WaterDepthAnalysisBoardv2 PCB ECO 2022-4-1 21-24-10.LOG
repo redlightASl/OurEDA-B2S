@@ -1,0 +1,13 @@
+Change Component Comment : Designator=R21 Old Comment=1K New Comment=100K
+Change Component Comment : Designator=R18 Old Comment=100K New Comment=10K
+Added Component: Designator=R?(R 0603_L)
+Add component (AddParameter): Name = "BOM名称"; Value = "贴片电阻"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "学习资源"; Value = "www.ooocke.com"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "版权归属"; Value = "源创客"; VariantName = "[No Variations]"
+Added Pin To Net: NetName=NetC9_2 Pin=R?-1
+Added Pin To Net: NetName=NetC8_2 Pin=R?-2
+Change Net Name : Old Net Name=NetC8_2 New Net Name=OSC_N
+Change Net Name : Old Net Name=NetC9_2 New Net Name=OSC_P
+Added Differential Pair: Name=OSC
+Added Member To Class: ClassName=WaterDepthAnalysisBoardv2 Member=Component R? 1M
+Added Room: Name=WaterDepthAnalysisBoardv2

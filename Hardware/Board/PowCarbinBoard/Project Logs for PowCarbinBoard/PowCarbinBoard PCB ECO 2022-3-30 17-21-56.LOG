@@ -1,0 +1,9 @@
+Removed Pin From Net: NetName=NetM1_29 Pin=U4-5
+Removed Pin From Net: NetName=NetM1_22 Pin=U4-6
+Added Pin To Net: NetName=NetM1_22 Pin=U4-5
+Added Pin To Net: NetName=NetM1_29 Pin=U4-6
+Added Room: Name=Connect
+Added Room: Name=Isolation
+Added Room: Name=MCU
+Added Room: Name=PowCarbinBoard_General
+Added Room: Name=Sensor

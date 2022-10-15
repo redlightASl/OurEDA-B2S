@@ -1,0 +1,20 @@
+ToolChainManager/order/0.id=gcc-x86_64-D\:/mingw64-posix-seh/bin/gcc.exe
+ToolChainManager/order/0.type=org.eclipse.cdt.build.gcc
+ToolChainManager/order/1.id=gcc-x86_64-D\:/cygwin64/bin/gcc.exe
+ToolChainManager/order/1.type=org.eclipse.cdt.build.gcc
+ToolChainManager/order/2.id=gcc-x86_64-D\:/mingw64-posix-seh/bin/x86_64-w64-mingw32-gcc.exe
+ToolChainManager/order/2.type=org.eclipse.cdt.build.gcc
+ToolChainManager/order/3.id=gcc-riscv-D\:/riscv_nuclei_gcc/bin/riscv-nuclei-elf-gcc.exe
+ToolChainManager/order/3.type=org.eclipse.cdt.build.gcc
+ToolChainManager/order/4.id=gcc-riscv-D\:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/riscv-none-embed-gcc.exe
+ToolChainManager/order/4.type=org.eclipse.cdt.build.gcc
+ToolChainManager/order/5.id=gcc-arm-D\:/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe
+ToolChainManager/order/5.type=org.eclipse.cdt.build.gcc
+ToolChainManager/order/6.id=gcc-x86_64-D\:/cygwin64/bin/x86_64-pc-cygwin-gcc.exe
+ToolChainManager/order/6.type=org.eclipse.cdt.build.gcc
+ToolChainManager/order/7.id=gcc-x86_64-D\:/LLVM/bin/clang.exe
+ToolChainManager/order/7.type=org.eclipse.cdt.build.clang
+ToolChainManager/order/n=8
+eclipse.preferences.version=1
+macros/workspace=<?xml version\="1.0" encoding\="UTF-8" standalone\="no"?>\r\n<macros/>\r\n
+org.eclipse.cdt.core.showSourceRootsAtTopLevelOfProject=true

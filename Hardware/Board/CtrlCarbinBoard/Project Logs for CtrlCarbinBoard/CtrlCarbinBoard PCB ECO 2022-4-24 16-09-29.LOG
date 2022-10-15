@@ -1,0 +1,24 @@
+Removed Pin From Net: NetName=+5 Pin=EC1-1
+Removed Pin From Net: NetName=GND Pin=EC1-2
+Removed Pin From Net: NetName=NetC17_2 Pin=EC2-1
+Removed Pin From Net: NetName=GND Pin=EC2-2
+Removed Member From Class: ClassName=Designator Member=EC1
+Removed Member From Class: ClassName=Designator Member=EC2
+Added Component: Designator=E1(CD B(3528))
+Add component (AddParameter): Name = "BOM名称"; Value = "贴片钽电容"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "学习资源"; Value = "www.ooocke.com"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "版权归属"; Value = "源创客"; VariantName = "[No Variations]"
+Added Component: Designator=E2(CD B(3528))
+Add component (AddParameter): Name = "BOM名称"; Value = "贴片钽电容"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "学习资源"; Value = "www.ooocke.com"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "版权归属"; Value = "源创客"; VariantName = "[No Variations]"
+Added Pin To Net: NetName=+5 Pin=E1-1
+Added Pin To Net: NetName=GND Pin=E1-2
+Added Pin To Net: NetName=NetC17_2 Pin=E2-1
+Added Pin To Net: NetName=GND Pin=E2-2
+Added Member To Class: ClassName=Designator Member=Component E1 10uF/6.3V
+Added Member To Class: ClassName=Designator Member=Component E2 10uF/6.3V
+Added Room: Name=CtrlCarbinBoard_Common
+Added Room: Name=Designator
+Added Room: Name=Designator
+Added Room: Name=Designator

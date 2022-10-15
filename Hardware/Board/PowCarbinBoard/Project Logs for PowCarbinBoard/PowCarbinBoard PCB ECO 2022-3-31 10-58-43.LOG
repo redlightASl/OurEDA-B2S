@@ -1,0 +1,9 @@
+Removed Pin From Net: NetName=NetJP3_1 Pin=M1-45
+Removed Pin From Net: NetName=NetJP3_2 Pin=M1-46
+Added Pin To Net: NetName=NetJP3_2 Pin=M1-45
+Added Pin To Net: NetName=NetJP3_1 Pin=M1-46
+Added Room: Name=Connect
+Added Room: Name=Isolation
+Added Room: Name=MCU
+Added Room: Name=PowCarbinBoard_General
+Added Room: Name=Sensor

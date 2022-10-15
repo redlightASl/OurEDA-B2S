@@ -1,0 +1,6 @@
+Algorithm.c:25:16:XorCaculate	24	static
+Algorithm.c:60:16:Crc8Caculate	32	static
+Algorithm.c:90:16:ParityCalculate	24	static
+Algorithm.c:114:9:SumCheck	24	static
+Algorithm.c:164:9:calculatePID	24	static
+Algorithm.c:252:16:IdTest	16	static

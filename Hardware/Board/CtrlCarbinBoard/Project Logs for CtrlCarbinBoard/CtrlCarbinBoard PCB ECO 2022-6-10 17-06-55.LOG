@@ -1,0 +1,22 @@
+Removed Pin From Net: NetName=GND Pin=JP11-1
+Removed Pin From Net: NetName=UART5_TX Pin=JP11-2
+Removed Pin From Net: NetName=UART5_RX Pin=JP11-3
+Removed Pin From Net: NetName=3V3 Pin=JP11-4
+Removed Pin From Net: NetName=GND Pin=JP12-1
+Removed Pin From Net: NetName=UART3_TX Pin=JP12-6
+Removed Pin From Net: NetName=UART3_RX Pin=JP12-7
+Removed Pin From Net: NetName=3V3 Pin=JP13-1
+Added Component: Designator=U4(GY39)
+Added Component: Designator=U5(WT931)
+Added Pin To Net: NetName=3V3 Pin=U4-5
+Added Pin To Net: NetName=UART5_RX Pin=U4-6
+Added Pin To Net: NetName=UART5_TX Pin=U4-7
+Added Pin To Net: NetName=GND Pin=U4-8
+Added Pin To Net: NetName=3V3 Pin=U5-1
+Added Pin To Net: NetName=UART3_RX Pin=U5-8
+Added Pin To Net: NetName=UART3_TX Pin=U5-9
+Added Pin To Net: NetName=GND Pin=U5-14
+Added Room: Name=CtrlCarbinBoard_Common
+Added Room: Name=Designator
+Added Room: Name=Designator
+Added Room: Name=Designator
