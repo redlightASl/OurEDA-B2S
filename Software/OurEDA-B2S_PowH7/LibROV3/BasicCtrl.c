@@ -1,19 +1,10 @@
 #include "BasicCtrl.h"
 #include <math.h>
 
-/**
- * @brief 基本的运动控制函数
- * @param  StraightNum      前进控制参数
- * @param  RotateNum        旋转控制参数
- * @param  VerticalNum      垂直控制参数
- * @param  ModeNum          模式 0旋转模式 1侧推模式 2自转模式
- * @return PwmVal_t 推进器控制数据
- * @note 可直接输出给推进器驱动，随时根据硬件调整
- */
-PwmVal_t MoveControl(uint16_t StraightNum, uint16_t RotateNum,
+
+void MoveControl(PwmVal_t* ThrusterTemp, uint16_t StraightNum, uint16_t RotateNum,
 		uint16_t VerticalNum, uint8_t ModeNum)
 {
-	PwmVal_t ThrusterTemp;
 	uint8_t AFlag = 0;
 	uint8_t BFlag = 0;
 	uint8_t CFlag = 0;
@@ -34,58 +25,58 @@ PwmVal_t MoveControl(uint16_t StraightNum, uint16_t RotateNum,
 		{
 		case 0:
 		case 15:
-			ThrusterTemp.HorizontalThruster[0] = (uint32_t) (RotateNum);
-			ThrusterTemp.HorizontalThruster[1] = (uint32_t) (RotateNum);
-			ThrusterTemp.HorizontalThruster[2] =
+			ThrusterTemp->HorizontalThruster[0] = (uint32_t) (RotateNum);
+			ThrusterTemp->HorizontalThruster[1] = (uint32_t) (RotateNum);
+			ThrusterTemp->HorizontalThruster[2] =
 					(uint32_t) ((PWM_MIDDLE_POSITION - RotateNum + StraightNum));
-			ThrusterTemp.HorizontalThruster[3] =
+			ThrusterTemp->HorizontalThruster[3] =
 					(uint32_t) ((PWM_MIDDLE_POSITION - RotateNum + StraightNum));
 			break;
 		case 7:
 		case 8:
-			ThrusterTemp.HorizontalThruster[0] = (uint32_t) (StraightNum);
-			ThrusterTemp.HorizontalThruster[1] = (uint32_t) (StraightNum);
-			ThrusterTemp.HorizontalThruster[2] =
+			ThrusterTemp->HorizontalThruster[0] = (uint32_t) (StraightNum);
+			ThrusterTemp->HorizontalThruster[1] = (uint32_t) (StraightNum);
+			ThrusterTemp->HorizontalThruster[2] =
 					(uint32_t) ((PWM_MIDDLE_POSITION - RotateNum + StraightNum));
-			ThrusterTemp.HorizontalThruster[3] =
+			ThrusterTemp->HorizontalThruster[3] =
 					(uint32_t) ((PWM_MIDDLE_POSITION - RotateNum + StraightNum));
 			break;
 		case 5:
 		case 10:
-			ThrusterTemp.HorizontalThruster[0] = (uint32_t) ((RotateNum
+			ThrusterTemp->HorizontalThruster[0] = (uint32_t) ((RotateNum
 					+ StraightNum - PWM_MIDDLE_POSITION));
-			ThrusterTemp.HorizontalThruster[1] = (uint32_t) ((RotateNum
+			ThrusterTemp->HorizontalThruster[1] = (uint32_t) ((RotateNum
 					+ StraightNum - PWM_MIDDLE_POSITION));
-			ThrusterTemp.HorizontalThruster[2] = (uint32_t) (StraightNum);
-			ThrusterTemp.HorizontalThruster[3] = (uint32_t) (StraightNum);
+			ThrusterTemp->HorizontalThruster[2] = (uint32_t) (StraightNum);
+			ThrusterTemp->HorizontalThruster[3] = (uint32_t) (StraightNum);
 			break;
 		case 1:
 		case 14:
-			ThrusterTemp.HorizontalThruster[0] = (uint32_t) ((RotateNum
+			ThrusterTemp->HorizontalThruster[0] = (uint32_t) ((RotateNum
 					+ StraightNum - PWM_MIDDLE_POSITION));
-			ThrusterTemp.HorizontalThruster[1] = (uint32_t) ((RotateNum
+			ThrusterTemp->HorizontalThruster[1] = (uint32_t) ((RotateNum
 					+ StraightNum - PWM_MIDDLE_POSITION));
-			ThrusterTemp.HorizontalThruster[2] = (uint32_t) (((2
+			ThrusterTemp->HorizontalThruster[2] = (uint32_t) (((2
 					* PWM_MIDDLE_POSITION) - RotateNum));
-			ThrusterTemp.HorizontalThruster[3] = (uint32_t) (((2
+			ThrusterTemp->HorizontalThruster[3] = (uint32_t) (((2
 					* PWM_MIDDLE_POSITION) - RotateNum));
 			break;
 		}
 		//Veritical Control
-		ThrusterTemp.VerticalThruster[0] = (uint32_t) (VerticalNum);
-		ThrusterTemp.VerticalThruster[1] = (uint32_t) (VerticalNum);
+		ThrusterTemp->VerticalThruster[0] = (uint32_t) (VerticalNum);
+		ThrusterTemp->VerticalThruster[1] = (uint32_t) (VerticalNum);
 		break;
 	case SIDEPUSH_MODE:
 		//Horizental Control
-		ThrusterTemp.HorizontalThruster[0] = (uint32_t) ((2
+		ThrusterTemp->HorizontalThruster[0] = (uint32_t) ((2
 				* PWM_MIDDLE_POSITION) - RotateNum);
-		ThrusterTemp.HorizontalThruster[1] = (uint32_t) (RotateNum);
-		ThrusterTemp.HorizontalThruster[2] = (uint32_t) ((2
+		ThrusterTemp->HorizontalThruster[1] = (uint32_t) (RotateNum);
+		ThrusterTemp->HorizontalThruster[2] = (uint32_t) ((2
 				* PWM_MIDDLE_POSITION) - RotateNum);
-		ThrusterTemp.HorizontalThruster[3] = (uint32_t) (RotateNum);
+		ThrusterTemp->HorizontalThruster[3] = (uint32_t) (RotateNum);
 		//Veritical Control
-		ThrusterTemp.VerticalThruster[0] = (uint32_t) (VerticalNum);
-		ThrusterTemp.VerticalThruster[1] = (uint32_t) (VerticalNum);
+		ThrusterTemp->VerticalThruster[0] = (uint32_t) (VerticalNum);
+		ThrusterTemp->VerticalThruster[1] = (uint32_t) (VerticalNum);
 		break;
 	case PITCH_MODE: //Unavailable in 6axis ROV
 		break;
@@ -294,58 +285,87 @@ PwmVal_t MoveControl(uint16_t StraightNum, uint16_t RotateNum,
 	return ThrusterTemp;
 }
 
-//void SendData2Upside(ReportData_t SendData)
-//{
-//    ReportSend[0] = 0x25;
-//    ReportSend[1] = ((SendData.CabinFunction) | (SendData.WaterDetect));
-//    ReportSend[2] = SendData.CabinTemperature & 0x00FF;
-//    ReportSend[3] = (SendData.CabinTemperature & 0xFF00) >> 8;
-//    ReportSend[4] = SendData.CabinBarometric & 0x000000FF;
-//    ReportSend[5] = (SendData.CabinBarometric & 0x0000FF00) >> 8;
-//    ReportSend[6] = (SendData.CabinBarometric & 0x00FF0000) >> 16;
-//    ReportSend[7] = (SendData.CabinBarometric & 0xFF000000) >> 24;
-//    ReportSend[8] = SendData.CabinHumidity;
-//    ReportSend[9] = SendData.CabinHumidity >> 8;
-//    ReportSend[10] = SendData.AccNum[0] & 0x00FF;
-//    ReportSend[11] = (SendData.AccNum[0] & 0xFF00) >> 8;
-//    ReportSend[12] = SendData.AccNum[1] & 0x00FF;
-//    ReportSend[13] = (SendData.AccNum[1] & 0xFF00) >> 8;
-//    ReportSend[14] = SendData.AccNum[2] & 0x00FF;
-//    ReportSend[15] = (SendData.AccNum[2] & 0xFF00) >> 8;
-//    ReportSend[16] = SendData.RotNum[0] & 0x00FF;
-//    ReportSend[17] = (SendData.RotNum[0] & 0xFF00) >> 8;
-//    ReportSend[18] = SendData.RotNum[1] & 0x00FF;
-//    ReportSend[19] = (SendData.RotNum[1] & 0xFF00) >> 8;
-//    ReportSend[20] = SendData.RotNum[2] & 0x00FF;
-//    ReportSend[21] = (SendData.RotNum[2] & 0xFF00) >> 8;
-//    ReportSend[22] = SendData.EulNum[0] & 0x00FF;
-//    ReportSend[23] = (SendData.EulNum[0] & 0xFF00) >> 8;
-//    ReportSend[24] = SendData.EulNum[1] & 0x00FF;
-//    ReportSend[25] = (SendData.EulNum[1] & 0xFF00) >> 8;
-//    ReportSend[26] = SendData.EulNum[2] & 0x00FF;
-//    ReportSend[27] = (SendData.EulNum[2] & 0xFF00) >> 8;
-//    ReportSend[28] = SendData.MagNum[0] & 0x00FF;
-//    ReportSend[29] = (SendData.MagNum[0] & 0xFF00) >> 8;
-//    ReportSend[30] = SendData.MagNum[0] & 0x00FF;
-//    ReportSend[31] = (SendData.MagNum[0] & 0xFF00) >> 8;
-//    ReportSend[32] = SendData.MagNum[0] & 0x00FF;
-//    ReportSend[33] = (SendData.MagNum[0] & 0xFF00) >> 8;
-//    ReportSend[34] = SendData.SonarDepth & 0x000000FF;
-//    ReportSend[35] = (SendData.SonarDepth & 0x0000FF00) >> 8;
-//    ReportSend[36] = (SendData.SonarDepth & 0x00FF0000) >> 16;
-//    ReportSend[37] = (SendData.SonarDepth & 0xFF000000) >> 24;
-//    ReportSend[38] = SendData.SonarConfidence & 0x00FF;
-//    ReportSend[39] = (SendData.SonarConfidence & 0xFF00) >> 8;
-//    ReportSend[40] = SendData.WaterTemperature & 0x00FF;
-//    ReportSend[41] = (SendData.WaterTemperature & 0xFF00) >> 8;
-//    ReportSend[42] = SendData.WaterDepth & 0x00FF;
-//    ReportSend[43] = (SendData.WaterDepth & 0xFF00) >> 8;
-//    ReportSend[44] = 0x00;
-//    ReportSend[45] = 0xFF;
-//    ReportSend[46] = 0xFF;
-//
-//    HAL_UART_Transmit_DMA(&Master_UART, ReportSend, Master_UART_TXLen);
-//}
+void ControlDataAnalysis(ControlData_t controller, PwmVal_t* temp_pwm, uint8_t ModeNum)
+{
+	MoveControl(temp_pwm, controller.StraightNum, controller.RotateNum,
+			controller.VerticalNum, ModeNum);
+
+	temp_pwm->LightServo = controller.LightNum; //light
+	temp_pwm->PanServo = controller.PanNum; //pan
+	temp_pwm->ConveyServo = controller.ConveyNum; //convey
+	temp_pwm->ArmServo[0] = controller.ArmNum[0]; //Horizental
+	temp_pwm->ArmServo[1] = controller.ArmNum[1]; //Main
+	temp_pwm->ArmServo[2] = controller.ArmNum[2]; //Middle
+	temp_pwm->ArmServo[3] = controller.ArmNum[3]; //Front
+	temp_pwm->ArmServo[4] = controller.ArmNum[4]; //Grab
+	temp_pwm->ArmServo[5] = controller.ArmNum[5]; //rest machine arm
+	temp_pwm->RestServo = controller.RestNum; //rest pwm
+}
+
+void CaptureReportData(ReportData_t SendData, uint8_t *ReportTransmit)
+{
+	ReportTransmit[0] = (uint8_t) (SendData.FrameHead);
+	ReportTransmit[1] = (uint8_t) ((SendData.CabinFunction)
+			| (SendData.WaterDetect << 1));
+	ReportTransmit[2] = (uint8_t) ((SendData.CabinTemperature & 0xFF00) >> 8);
+	ReportTransmit[3] = (uint8_t) (SendData.CabinTemperature & 0x00FF);
+	ReportTransmit[4] =
+			(uint8_t) ((SendData.CabinBarometric & 0xFF000000) >> 24);
+	ReportTransmit[5] =
+			(uint8_t) ((SendData.CabinBarometric & 0x00FF0000) >> 16);
+	ReportTransmit[6] =
+			(uint8_t) ((SendData.CabinBarometric & 0x0000FF00) >> 8);
+	ReportTransmit[7] = (uint8_t) (SendData.CabinBarometric & 0x000000FF);
+	ReportTransmit[8] = (uint8_t) ((SendData.CabinHumidity & 0xFF00) >> 8);
+	ReportTransmit[9] = (uint8_t) (SendData.CabinHumidity & 0x00FF);
+	ReportTransmit[10] = (uint8_t) ((SendData.AccNum[0] & 0xFF00) >> 8);
+	ReportTransmit[11] = (uint8_t) (SendData.AccNum[0] & 0x00FF);
+	ReportTransmit[12] = (uint8_t) ((SendData.AccNum[1] & 0xFF00) >> 8);
+	ReportTransmit[13] = (uint8_t) (SendData.AccNum[1] & 0x00FF);
+	ReportTransmit[14] = (uint8_t) ((SendData.AccNum[2] & 0xFF00) >> 8);
+	ReportTransmit[15] = (uint8_t) (SendData.AccNum[2] & 0x00FF);
+	ReportTransmit[16] = (uint8_t) ((SendData.RotNum[0] & 0xFF00) >> 8);
+	ReportTransmit[17] = (uint8_t) (SendData.RotNum[0] & 0x00FF);
+	ReportTransmit[18] = (uint8_t) ((SendData.RotNum[1] & 0xFF00) >> 8);
+	ReportTransmit[19] = (uint8_t) (SendData.RotNum[1] & 0x00FF);
+	ReportTransmit[20] = (uint8_t) ((SendData.RotNum[2] & 0xFF00) >> 8);
+	ReportTransmit[21] = (uint8_t) (SendData.RotNum[2] & 0x00FF);
+	ReportTransmit[22] = (uint8_t) ((SendData.EulNum[0] & 0xFF00) >> 8);
+	ReportTransmit[23] = (uint8_t) (SendData.EulNum[0] & 0x00FF);
+	ReportTransmit[24] = (uint8_t) ((SendData.EulNum[1] & 0xFF00) >> 8);
+	ReportTransmit[25] = (uint8_t) (SendData.EulNum[1] & 0x00FF);
+	ReportTransmit[26] = (uint8_t) ((SendData.EulNum[2] & 0xFF00) >> 8);
+	ReportTransmit[27] = (uint8_t) (SendData.EulNum[2] & 0x00FF);
+	ReportTransmit[28] = (uint8_t) ((SendData.MagNum[0] & 0xFF00) >> 8);
+	ReportTransmit[29] = (uint8_t) (SendData.MagNum[0] & 0x00FF);
+	ReportTransmit[30] = (uint8_t) ((SendData.MagNum[0] & 0xFF00) >> 8);
+	ReportTransmit[31] = (uint8_t) (SendData.MagNum[0] & 0x00FF);
+	ReportTransmit[32] = (uint8_t) ((SendData.MagNum[0] & 0xFF00) >> 8);
+	ReportTransmit[33] = (uint8_t) (SendData.MagNum[0] & 0x00FF);
+//	ReportTransmit[34] = (uint8_t) (SendData.SonarDepth & 0x000000FF);
+//	ReportTransmit[35] = (uint8_t) ((SendData.SonarDepth & 0x0000FF00) >> 8);
+//	ReportTransmit[36] = (uint8_t) ((SendData.SonarDepth & 0x00FF0000) >> 16);
+//	ReportTransmit[37] = (uint8_t) ((SendData.SonarDepth & 0xFF000000) >> 24);
+//	ReportTransmit[38] = (uint8_t) (SendData.SonarConfidence & 0x00FF);
+//	ReportTransmit[39] = (uint8_t) ((SendData.SonarConfidence & 0xFF00) >> 8);
+//	ReportTransmit[40] = (uint8_t) (SendData.WaterTemperature & 0x00FF);
+//	ReportTransmit[41] = (uint8_t) ((SendData.WaterTemperature & 0xFF00) >> 8);
+//	ReportTransmit[42] = (uint8_t) (SendData.WaterDepth & 0x00FF);
+//	ReportTransmit[43] = (uint8_t) ((SendData.WaterDepth & 0xFF00) >> 8);
+	ReportTransmit[34] = 0x00;
+	ReportTransmit[35] = 0x00;
+	ReportTransmit[36] = 0x00;
+	ReportTransmit[37] = 0x00;
+	ReportTransmit[38] = 0x00;
+	ReportTransmit[39] = 0x00;
+	ReportTransmit[40] = 0x00;
+	ReportTransmit[41] = 0x00;
+	ReportTransmit[42] = 0x00;
+	ReportTransmit[43] = 0x00;
+	ReportTransmit[44] = (uint8_t) 0x00;
+	ReportTransmit[45] = (uint8_t) ((SendData.FrameEnd & 0xFF00) >> 8);
+	ReportTransmit[46] = (uint8_t) (SendData.FrameEnd & 0x00FF);
+}
 
 ControlData_t CaptureControlData(uint8_t *CommandReceive)
 {
@@ -387,6 +407,10 @@ ControlData_t CaptureControlData(uint8_t *CommandReceive)
 			CaptureData.Mode = CommandReceive[i + 27];
 			CaptureData.IdTest = CommandReceive[i + 28];
 			CaptureData.FrameEnd = (CommandReceive[i + 29]);
+		}
+		else if(i > Master_UART_RXLen)
+		{
+			break;
 		}
 	}
 

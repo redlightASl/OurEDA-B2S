@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <cHelpSettings>
+            
+    
     <project name="OurEDA-B2S_PowH7">
+                        
+        
+        <provider id="org.eclipse.cdt.ui.provider1"/>
+                    
+    
+    </project>
+        
+    
+    <project name="OurEDA-B2S_CtrlH7">
         <provider id="org.eclipse.cdt.ui.provider1"/>
     </project>
+    
 </cHelpSettings>

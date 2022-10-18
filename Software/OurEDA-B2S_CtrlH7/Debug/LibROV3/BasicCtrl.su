@@ -1,0 +1,6 @@
+BasicCtrl.c:4:6:MoveControl	32	static
+BasicCtrl.c:287:6:CaptureReportData	8	static
+BasicCtrl.c:352:14:ReportDataAnalysis	88	static
+BasicCtrl.c:422:15:CaptureControlData	64	static
+BasicCtrl.c:468:6:ControlDataAnalysis	16	static
+BasicCtrl.c:486:6:ControlDataGenerate	8	static

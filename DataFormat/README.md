@@ -6,3 +6,6 @@
 
 上传指令格式：DataFormat.xlsx
 
+### ROV-Debugger格式
+
+`05DC:05DC:05DC:05DC:05DC:05DC:05DC:05DC:05DC:05DC:05DC:05DC:05DC`

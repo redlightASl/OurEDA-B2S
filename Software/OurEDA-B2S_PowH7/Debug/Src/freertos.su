@@ -1,8 +1,7 @@
-freertos.c:113:6:vApplicationGetIdleTaskMemory	24	static
-freertos.c:128:6:MX_FREERTOS_Init	216	static
-freertos.c:213:6:Thread_IdleEntry	16	static
-freertos.c:233:6:Thread_GY39Entry	48	static
-freertos.c:275:6:Thread_WT931Entry	88	static
-freertos.c:312:6:Thread_ControlEntry	224	static
-freertos.c:402:6:Thread_SensorEntry	16	static
-freertos.c:421:10:ControlDataAnalysis	160	static
+freertos.c:114:6:vApplicationGetIdleTaskMemory	24	static
+freertos.c:129:6:MX_FREERTOS_Init	232	static
+freertos.c:220:6:Thread_IdleEntry	16	static
+freertos.c:239:6:Thread_GY39Entry	56	static
+freertos.c:281:6:Thread_WT931Entry	120	static
+freertos.c:319:6:Thread_ControlEntry	328	static
+freertos.c:527:6:Thread_SensorEntry	184	static

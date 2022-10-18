@@ -1,2 +1,4 @@
-BasicCtrl.c:13:10:MoveControl	104	static
-BasicCtrl.c:350:15:CaptureControlData	64	static
+BasicCtrl.c:5:6:MoveControl	32	static
+BasicCtrl.c:288:6:ControlDataAnalysis	16	static
+BasicCtrl.c:305:6:CaptureReportData	8	static
+BasicCtrl.c:370:15:CaptureControlData	64	static

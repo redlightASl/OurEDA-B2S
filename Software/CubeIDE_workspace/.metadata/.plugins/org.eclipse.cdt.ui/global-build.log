@@ -1,96 +1,28 @@
-21:29:13 **** Incremental Build of configuration Debug for project OurEDA-B2S_PowH7 ****
+16:41:51 **** Incremental Build of configuration Debug for project OurEDA-B2S_CtrlH7 ****
 make -j12 all 
-arm-none-eabi-gcc "../Src/freertos.c" -mcpu=cortex-m7 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32H750xx -c -I../Inc -I"F:/Git_repository/OurEDA/OurEDA-B2S/Software/OurEDA-B2S_PowH7/Inc" -I"F:/Git_repository/OurEDA/OurEDA-B2S/Software/OurEDA-B2S_PowH7/LibROV3" -I../Drivers/STM32H7xx_HAL_Driver/Inc -I../Drivers/STM32H7xx_HAL_Driver/Inc/Legacy -I../Middlewares/Third_Party/FreeRTOS/Source/include -I../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS -I../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F -I../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -MMD -MP -MF"Src/freertos.d" -MT"Src/freertos.o" --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -o "Src/freertos.o"
-../Src/freertos.c: In function 'Thread_GY39Entry':
-../Src/freertos.c:240:15: warning: variable 'gy39_data' set but not used [-Wunused-but-set-variable]
-  240 |  CarbinData_t gy39_data;
-      |               ^~~~~~~~~
-../Src/freertos.c: In function 'Thread_WT931Entry':
-../Src/freertos.c:280:12: warning: variable 'wt931_data' set but not used [-Wunused-but-set-variable]
-  280 |  IMUData_t wt931_data;
-      |            ^~~~~~~~~~
-../Src/freertos.c: In function 'ControlDataAnalysis':
-../Src/freertos.c:431:22: warning: suggest parentheses around comparison in operand of '&' [-Wparentheses]
-  431 |  if (controller.Mode & 0x01 == 1)
-      |                      ^
-../Src/freertos.c:428:17: warning: variable 'IS_SIDEPUSH' set but not used [-Wunused-but-set-variable]
-  428 |  static uint8_t IS_SIDEPUSH = 0;
-      |                 ^~~~~~~~~~~
-arm-none-eabi-gcc -o "OurEDA-B2S_PowH7.elf" @"objects.list"   -mcpu=cortex-m7 -T"F:\Git_repository\OurEDA\OurEDA-B2S\Software\OurEDA-B2S_PowH7\STM32H750VBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="OurEDA-B2S_PowH7.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
-Finished building target: OurEDA-B2S_PowH7.elf
+arm-none-eabi-gcc "../Core/Src/freertos.c" -mcpu=cortex-m7 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32H750xx -c -I../Core/Inc -I../Drivers/STM32H7xx_HAL_Driver/Inc -I../Drivers/STM32H7xx_HAL_Driver/Inc/Legacy -I../Middlewares/Third_Party/FreeRTOS/Source/include -I../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS -I../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F -I../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I../Drivers/CMSIS/Include -I"F:/Git_repository/OurEDA/OurEDA-B2S/Software/OurEDA-B2S_CtrlH7/LibROV3" -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -MMD -MP -MF"Core/Src/freertos.d" -MT"Core/Src/freertos.o" --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -o "Core/Src/freertos.o"
+../Core/Src/freertos.c: In function 'Thread_ControlEntry':
+../Core/Src/freertos.c:509:4: warning: implicit declaration of function 'ControlDataGenerate' [-Wimplicit-function-declaration]
+  509 |    ControlDataGenerate(control_data_origin, Cmd_TxBuffer);
+      |    ^~~~~~~~~~~~~~~~~~~
+arm-none-eabi-gcc -o "OurEDA-B2S_CtrlH7.elf" @"objects.list"   -mcpu=cortex-m7 -T"F:\Git_repository\OurEDA\OurEDA-B2S\Software\OurEDA-B2S_CtrlH7\STM32H750VBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="OurEDA-B2S_CtrlH7.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: OurEDA-B2S_CtrlH7.elf
  
-arm-none-eabi-objdump -h -S  OurEDA-B2S_PowH7.elf  > "OurEDA-B2S_PowH7.list"
-arm-none-eabi-objcopy  -O binary  OurEDA-B2S_PowH7.elf  "OurEDA-B2S_PowH7.bin"
-arm-none-eabi-size   OurEDA-B2S_PowH7.elf 
+arm-none-eabi-objdump -h -S  OurEDA-B2S_CtrlH7.elf  > "OurEDA-B2S_CtrlH7.list"
+arm-none-eabi-objcopy  -O binary  OurEDA-B2S_CtrlH7.elf  "OurEDA-B2S_CtrlH7.bin"
+arm-none-eabi-size   OurEDA-B2S_CtrlH7.elf 
    text	   data	    bss	    dec	    hex	filename
-  65736	    128	  31032	  96896	  17a80	OurEDA-B2S_PowH7.elf
+  59520	     28	  40636	 100184	  18758	OurEDA-B2S_CtrlH7.elf
 Finished building: default.size.stdout
  
-Finished building: OurEDA-B2S_PowH7.bin
+Finished building: OurEDA-B2S_CtrlH7.bin
  
-Finished building: OurEDA-B2S_PowH7.list
+Finished building: OurEDA-B2S_CtrlH7.list
  
-21:30:03 **** Incremental Build of configuration Debug for project OurEDA-B2S_PowH7 ****
+16:41:55 **** Incremental Build of configuration Debug for project OurEDA-B2S_CtrlH7 ****
 make -j12 all 
-arm-none-eabi-gcc "../Src/freertos.c" -mcpu=cortex-m7 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32H750xx -c -I../Inc -I"F:/Git_repository/OurEDA/OurEDA-B2S/Software/OurEDA-B2S_PowH7/Inc" -I"F:/Git_repository/OurEDA/OurEDA-B2S/Software/OurEDA-B2S_PowH7/LibROV3" -I../Drivers/STM32H7xx_HAL_Driver/Inc -I../Drivers/STM32H7xx_HAL_Driver/Inc/Legacy -I../Middlewares/Third_Party/FreeRTOS/Source/include -I../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS -I../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F -I../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -MMD -MP -MF"Src/freertos.d" -MT"Src/freertos.o" --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -o "Src/freertos.o"
-../Src/freertos.c: In function 'Thread_GY39Entry':
-../Src/freertos.c:240:15: warning: variable 'gy39_data' set but not used [-Wunused-but-set-variable]
-  240 |  CarbinData_t gy39_data;
-      |               ^~~~~~~~~
-../Src/freertos.c: In function 'Thread_WT931Entry':
-../Src/freertos.c:280:12: warning: variable 'wt931_data' set but not used [-Wunused-but-set-variable]
-  280 |  IMUData_t wt931_data;
-      |            ^~~~~~~~~~
-../Src/freertos.c: In function 'ControlDataAnalysis':
-../Src/freertos.c:432:22: warning: suggest parentheses around comparison in operand of '&' [-Wparentheses]
-  432 |  if (controller.Mode & 0x01 == 1)
-      |                      ^
-../Src/freertos.c:429:17: warning: variable 'IS_SIDEPUSH' set but not used [-Wunused-but-set-variable]
-  429 |  static uint8_t IS_SIDEPUSH = 0;
-      |                 ^~~~~~~~~~~
-arm-none-eabi-gcc -o "OurEDA-B2S_PowH7.elf" @"objects.list"   -mcpu=cortex-m7 -T"F:\Git_repository\OurEDA\OurEDA-B2S\Software\OurEDA-B2S_PowH7\STM32H750VBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="OurEDA-B2S_PowH7.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
-Finished building target: OurEDA-B2S_PowH7.elf
- 
-arm-none-eabi-objdump -h -S  OurEDA-B2S_PowH7.elf  > "OurEDA-B2S_PowH7.list"
-arm-none-eabi-objcopy  -O binary  OurEDA-B2S_PowH7.elf  "OurEDA-B2S_PowH7.bin"
-arm-none-eabi-size   OurEDA-B2S_PowH7.elf 
+arm-none-eabi-size   OurEDA-B2S_CtrlH7.elf 
    text	   data	    bss	    dec	    hex	filename
-  65752	    128	  31032	  96912	  17a90	OurEDA-B2S_PowH7.elf
+  59520	     28	  40636	 100184	  18758	OurEDA-B2S_CtrlH7.elf
 Finished building: default.size.stdout
- 
-Finished building: OurEDA-B2S_PowH7.bin
- 
-Finished building: OurEDA-B2S_PowH7.list
- 
-21:34:39 **** Incremental Build of configuration Debug for project OurEDA-B2S_PowH7 ****
-make -j12 all 
-arm-none-eabi-gcc "../Src/freertos.c" -mcpu=cortex-m7 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32H750xx -c -I../Inc -I"F:/Git_repository/OurEDA/OurEDA-B2S/Software/OurEDA-B2S_PowH7/Inc" -I"F:/Git_repository/OurEDA/OurEDA-B2S/Software/OurEDA-B2S_PowH7/LibROV3" -I../Drivers/STM32H7xx_HAL_Driver/Inc -I../Drivers/STM32H7xx_HAL_Driver/Inc/Legacy -I../Middlewares/Third_Party/FreeRTOS/Source/include -I../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS -I../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F -I../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -MMD -MP -MF"Src/freertos.d" -MT"Src/freertos.o" --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -o "Src/freertos.o"
-../Src/freertos.c: In function 'Thread_GY39Entry':
-../Src/freertos.c:240:15: warning: variable 'gy39_data' set but not used [-Wunused-but-set-variable]
-  240 |  CarbinData_t gy39_data;
-      |               ^~~~~~~~~
-../Src/freertos.c: In function 'Thread_WT931Entry':
-../Src/freertos.c:280:12: warning: variable 'wt931_data' set but not used [-Wunused-but-set-variable]
-  280 |  IMUData_t wt931_data;
-      |            ^~~~~~~~~~
-../Src/freertos.c: In function 'ControlDataAnalysis':
-../Src/freertos.c:427:22: warning: suggest parentheses around comparison in operand of '&' [-Wparentheses]
-  427 |  if (controller.Mode & 0x01 == 1)
-      |                      ^
-../Src/freertos.c:424:17: warning: variable 'IS_SIDEPUSH' set but not used [-Wunused-but-set-variable]
-  424 |  static uint8_t IS_SIDEPUSH = 0;
-      |                 ^~~~~~~~~~~
-arm-none-eabi-gcc -o "OurEDA-B2S_PowH7.elf" @"objects.list"   -mcpu=cortex-m7 -T"F:\Git_repository\OurEDA\OurEDA-B2S\Software\OurEDA-B2S_PowH7\STM32H750VBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="OurEDA-B2S_PowH7.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
-Finished building target: OurEDA-B2S_PowH7.elf
- 
-arm-none-eabi-objdump -h -S  OurEDA-B2S_PowH7.elf  > "OurEDA-B2S_PowH7.list"
-arm-none-eabi-objcopy  -O binary  OurEDA-B2S_PowH7.elf  "OurEDA-B2S_PowH7.bin"
-arm-none-eabi-size   OurEDA-B2S_PowH7.elf 
-   text	   data	    bss	    dec	    hex	filename
-  60960	     28	  31004	  91992	  16758	OurEDA-B2S_PowH7.elf
-Finished building: default.size.stdout
- 
-Finished building: OurEDA-B2S_PowH7.bin
- 
-Finished building: OurEDA-B2S_PowH7.list
  
