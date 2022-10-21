@@ -127,7 +127,7 @@
     {
         uint16_t CarbinTemperature;
         uint16_t CarbinHumidity;
-        uint16_t CarbinBarometric;
+        uint32_t CarbinBarometric;
         uint16_t CarbinIllumination;
     };
     typedef struct CarbinData CarbinData_t;

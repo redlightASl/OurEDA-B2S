@@ -73,13 +73,16 @@ struct PwmVal {
 };
 typedef struct PwmVal PwmVal_t;
 
-ControlData_t CaptureControlData(uint8_t *CommandReceive);
-void ControlDataAnalysis(ControlData_t controller, PwmVal_t *temp_pwm,
-		uint8_t ModeNum);
-void MoveControl(PwmVal_t *ThrusterTemp, uint16_t StraightNum,
-		uint16_t RotateNum, uint16_t VerticalNum, uint8_t ModeNum);
+
+void MoveControl(PwmVal_t *ThrusterTemp, uint16_t StraightNum, uint16_t RotateNum, uint16_t VerticalNum, uint8_t ModeNum);
 void CaptureReportData(ReportData_t SendData, uint8_t *ReportTransmit);
 ReportData_t ReportDataAnalysis(uint8_t *ReportReceive);
+//ControlData_t CaptureControlData(uint8_t *CommandReceive);
+void CaptureControlData(ControlData_t* CaptureData, uint8_t *CommandReceive);
+void ControlDataAnalysis(ControlData_t controller, PwmVal_t *temp_pwm, uint8_t ModeNum);
+void ControlDataGenerate(ControlData_t controller, uint8_t *CommandTransmit);
+
+
 
 #ifdef __cplusplus
 }

@@ -282,7 +282,6 @@ void MoveControl(PwmVal_t* ThrusterTemp, uint16_t StraightNum, uint16_t RotateNu
         break;
     }
 #endif
-	return ThrusterTemp;
 }
 
 void ControlDataAnalysis(ControlData_t controller, PwmVal_t* temp_pwm, uint8_t ModeNum)
@@ -367,53 +366,100 @@ void CaptureReportData(ReportData_t SendData, uint8_t *ReportTransmit)
 	ReportTransmit[46] = (uint8_t) (SendData.FrameEnd & 0x00FF);
 }
 
-ControlData_t CaptureControlData(uint8_t *CommandReceive)
-{
-	ControlData_t CaptureData;
+//ControlData_t CaptureControlData(uint8_t *CommandReceive)
+//{
+//	ControlData_t CaptureData;
+//
+//	for (uint8_t i = 0; i < Master_UART_RXLen; i++)
+//	{
+//		if ((CommandReceive[i] == 0x25) && (CommandReceive[i + 29] == 0x21)
+//				&& (CommandReceive[i + 28] == 0x00))
+//		{
+//			CaptureData.FrameHead = (CommandReceive[i]);
+//			CaptureData.StraightNum = ((CommandReceive[i + 1] << 8)
+//					| CommandReceive[i + 2]);
+//			CaptureData.RotateNum = ((CommandReceive[i + 3] << 8)
+//					| CommandReceive[i + 4]);
+//			CaptureData.VerticalNum = ((CommandReceive[i + 5] << 8)
+//					| CommandReceive[i + 6]);
+//			CaptureData.LightNum = ((CommandReceive[i + 7] << 8)
+//					| CommandReceive[i + 8]);
+//			CaptureData.PanNum = ((CommandReceive[i + 9] << 8)
+//					| CommandReceive[i + 10]);
+//			CaptureData.ConveyNum = ((CommandReceive[i + 11] << 8)
+//					| CommandReceive[i + 12]);
+//
+//			CaptureData.ArmNum[0] = ((CommandReceive[i + 13] << 8)
+//					| CommandReceive[i + 14]);
+//			CaptureData.ArmNum[1] = ((CommandReceive[i + 15] << 8)
+//					| CommandReceive[i + 16]);
+//			CaptureData.ArmNum[2] = ((CommandReceive[i + 17] << 8)
+//					| CommandReceive[i + 18]);
+//			CaptureData.ArmNum[3] = ((CommandReceive[i + 19] << 8)
+//					| CommandReceive[i + 20]);
+//			CaptureData.ArmNum[4] = ((CommandReceive[i + 21] << 8)
+//					| CommandReceive[i + 22]);
+//			CaptureData.ArmNum[5] = ((CommandReceive[i + 23] << 8)
+//					| CommandReceive[i + 24]);
+//			CaptureData.RestNum = ((CommandReceive[i + 25] << 8)
+//					| CommandReceive[i + 26]);
+//			CaptureData.Mode = CommandReceive[i + 27];
+//			CaptureData.IdTest = CommandReceive[i + 28];
+//			CaptureData.FrameEnd = (CommandReceive[i + 29]);
+//		}
+//		else
+//		{
+//			continue;
+//		}
+//	}
+//
+//	return CaptureData;
+//}
 
-	for (uint8_t i = 0; i < Master_UART_RXLen * 2; i++)
+void CaptureControlData(ControlData_t* CaptureData, uint8_t *CommandReceive)
+{
+	for (uint8_t i = 0; i < Master_UART_RXLen; i++)
 	{
 		if ((CommandReceive[i] == 0x25) && (CommandReceive[i + 29] == 0x21)
 				&& (CommandReceive[i + 28] == 0x00))
 		{
-			CaptureData.FrameHead = (CommandReceive[i]);
-			CaptureData.StraightNum = ((CommandReceive[i + 1] << 8)
+			CaptureData->FrameHead = (CommandReceive[i]);
+			CaptureData->StraightNum = ((CommandReceive[i + 1] << 8)
 					| CommandReceive[i + 2]);
-			CaptureData.RotateNum = ((CommandReceive[i + 3] << 8)
+			CaptureData->RotateNum = ((CommandReceive[i + 3] << 8)
 					| CommandReceive[i + 4]);
-			CaptureData.VerticalNum = ((CommandReceive[i + 5] << 8)
+			CaptureData->VerticalNum = ((CommandReceive[i + 5] << 8)
 					| CommandReceive[i + 6]);
-			CaptureData.LightNum = ((CommandReceive[i + 7] << 8)
+			CaptureData->LightNum = ((CommandReceive[i + 7] << 8)
 					| CommandReceive[i + 8]);
-			CaptureData.PanNum = ((CommandReceive[i + 9] << 8)
+			CaptureData->PanNum = ((CommandReceive[i + 9] << 8)
 					| CommandReceive[i + 10]);
-			CaptureData.ConveyNum = ((CommandReceive[i + 11] << 8)
+			CaptureData->ConveyNum = ((CommandReceive[i + 11] << 8)
 					| CommandReceive[i + 12]);
 
-			CaptureData.ArmNum[0] = ((CommandReceive[i + 13] << 8)
+			CaptureData->ArmNum[0] = ((CommandReceive[i + 13] << 8)
 					| CommandReceive[i + 14]);
-			CaptureData.ArmNum[1] = ((CommandReceive[i + 15] << 8)
+			CaptureData->ArmNum[1] = ((CommandReceive[i + 15] << 8)
 					| CommandReceive[i + 16]);
-			CaptureData.ArmNum[2] = ((CommandReceive[i + 17] << 8)
+			CaptureData->ArmNum[2] = ((CommandReceive[i + 17] << 8)
 					| CommandReceive[i + 18]);
-			CaptureData.ArmNum[3] = ((CommandReceive[i + 19] << 8)
+			CaptureData->ArmNum[3] = ((CommandReceive[i + 19] << 8)
 					| CommandReceive[i + 20]);
-			CaptureData.ArmNum[4] = ((CommandReceive[i + 21] << 8)
+			CaptureData->ArmNum[4] = ((CommandReceive[i + 21] << 8)
 					| CommandReceive[i + 22]);
-			CaptureData.ArmNum[5] = ((CommandReceive[i + 23] << 8)
+			CaptureData->ArmNum[5] = ((CommandReceive[i + 23] << 8)
 					| CommandReceive[i + 24]);
-			CaptureData.RestNum = ((CommandReceive[i + 25] << 8)
+			CaptureData->RestNum = ((CommandReceive[i + 25] << 8)
 					| CommandReceive[i + 26]);
-			CaptureData.Mode = CommandReceive[i + 27];
-			CaptureData.IdTest = CommandReceive[i + 28];
-			CaptureData.FrameEnd = (CommandReceive[i + 29]);
+			CaptureData->Mode = CommandReceive[i + 27];
+			CaptureData->IdTest = CommandReceive[i + 28];
+			CaptureData->FrameEnd = (CommandReceive[i + 29]);
 		}
-		else if(i > Master_UART_RXLen)
+		else
 		{
-			break;
+			continue;
 		}
 	}
-
-	return CaptureData;
 }
+
 

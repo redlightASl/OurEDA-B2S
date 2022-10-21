@@ -88,7 +88,7 @@ struct DepthData
 {
 	uint16_t WaterTemperature;
 	uint32_t WaterPressure;
-//        uint8_t is_signed;
+    uint8_t is_signed;
 	uint16_t WaterDepth;
 };
 typedef struct DepthData DepthData_t;
@@ -120,7 +120,7 @@ struct CarbinData
 {
 	uint16_t CarbinTemperature;
 	uint16_t CarbinHumidity;
-	uint16_t CarbinBarometric;
+	uint32_t CarbinBarometric;
 	uint16_t CarbinIllumination;
 };
 typedef struct CarbinData CarbinData_t;

@@ -90,9 +90,20 @@ osStaticSemaphoreDef_t CMD_DONE_semControlBlock;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
-osMessageQId Attitude_QueueHandle;
-uint8_t Attitude_QueueBuffer[2 * sizeof(IMUData_t)];
-osStaticMessageQDef_t Attitude_QueueControlBlock;
+
+osThreadId Thread_RecvCmdHandle;
+uint32_t Thread_RecvCmdBuffer[2 * sizeof(ControlData_t)];
+osStaticThreadDef_t Thread_RecvCmdControlBlock;
+
+osMessageQId Cmd_QueueHandle;
+uint8_t Cmd_QueueBuffer[1 * sizeof(ControlData_t)];
+osStaticMessageQDef_t Cmd_QueueControlBlock;
+
+osMutexId MAIN_UART_mutexHandle;
+osStaticMutexDef_t MAIN_UART_mutexControlBlock;
+
+void Thread_RecvCmdEntry(void const *argument);
+
 /* USER CODE END FunctionPrototypes */
 
 void Thread_IdleEntry(void const *argument);
@@ -134,6 +145,8 @@ void MX_FREERTOS_Init(void)
 
 	/* USER CODE BEGIN RTOS_MUTEX */
 	/* add mutexes, ... */
+	osMutexStaticDef(MAIN_UART_mutex, &MAIN_UART_mutexControlBlock);
+	MAIN_UART_mutexHandle = osMutexCreate(osMutex(MAIN_UART_mutex));
 	/* USER CODE END RTOS_MUTEX */
 
 	/* Create the semaphores(s) */
@@ -170,9 +183,9 @@ void MX_FREERTOS_Init(void)
 
 	/* USER CODE BEGIN RTOS_QUEUES */
 	/* add queues, ... */
-	osMessageQStaticDef(Attitude_Queue, 2, IMUData_t, Attitude_QueueBuffer,
-			&Attitude_QueueControlBlock);
-	Attitude_QueueHandle = osMessageCreate(osMessageQ(Attitude_Queue), NULL);
+	osMessageQStaticDef(Cmd_Queue, 1, ControlData_t, Cmd_QueueBuffer,
+			&Cmd_QueueControlBlock);
+	Cmd_QueueHandle = osMessageCreate(osMessageQ(Cmd_Queue), NULL);
 
 	/* USER CODE END RTOS_QUEUES */
 
@@ -206,6 +219,9 @@ void MX_FREERTOS_Init(void)
 
 	/* USER CODE BEGIN RTOS_THREADS */
 	/* add threads, ... */
+	osThreadStaticDef(Thread_RecvCmd, Thread_RecvCmdEntry, osPriorityNormal, 0,
+			512, Thread_RecvCmdBuffer, &Thread_RecvCmdControlBlock);
+	Thread_RecvCmdHandle = osThreadCreate(osThread(Thread_RecvCmd), NULL);
 	/* USER CODE END RTOS_THREADS */
 
 }
@@ -223,8 +239,8 @@ void Thread_IdleEntry(void const *argument)
 	/* Infinite loop */
 	for (;;)
 	{
-		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-		osDelay(500);
+//		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+		osDelay(1000);
 	}
 	/* USER CODE END Thread_IdleEntry */
 }
@@ -247,6 +263,8 @@ void Thread_GY39Entry(void const *argument)
 
 	InitGY39(GY39_TxBuffer);
 	HAL_UART_Transmit_DMA(&TEMPER_UART, GY39_TxBuffer, sizeof(GY39_TxBuffer));
+
+	__HAL_UART_ENABLE_IT(&TEMPER_UART, UART_IT_IDLE);
 	HAL_UART_Receive_DMA(&TEMPER_UART, GY39_RxBuffer, sizeof(GY39_RxBuffer));
 
 	/* Infinite loop */
@@ -281,10 +299,11 @@ void Thread_GY39Entry(void const *argument)
 void Thread_WT931Entry(void const *argument)
 {
 	/* USER CODE BEGIN Thread_WT931Entry */
-	uint8_t WT931_RxBuffer[AXIS_UART_RXLen] =
+	uint8_t WT931_RxBuffer[2 * AXIS_UART_RXLen] =
 	{ 0 };
 	IMUData_t wt931_data;
 
+	__HAL_UART_ENABLE_IT(&AXIS_UART, UART_IT_IDLE);
 	HAL_UART_Receive_DMA(&AXIS_UART, WT931_RxBuffer, sizeof(WT931_RxBuffer));
 
 	/* Infinite loop */
@@ -297,7 +316,7 @@ void Thread_WT931Entry(void const *argument)
 //			printf("a:%d, %d, %d\r\n", wt931_data.EulerAngle[0],
 //					wt931_data.EulerAngle[1], wt931_data.EulerAngle[2]);
 			xQueueSendToFront(WT931_QueueHandle, (void* )&wt931_data, 0);
-			xQueueSendToFront(Attitude_QueueHandle, (void* )&wt931_data, 0);
+//			xQueueSendToFront(Attitude_QueueHandle, (void* )&wt931_data, 0);
 
 			memset(&WT931_RxBuffer, 0, sizeof(WT931_RxBuffer));
 			__HAL_UART_ENABLE_IT(&AXIS_UART, UART_IT_IDLE);
@@ -319,45 +338,21 @@ void Thread_WT931Entry(void const *argument)
 void Thread_ControlEntry(void const *argument)
 {
 	/* USER CODE BEGIN Thread_ControlEntry */
-	uint8_t Command_RxBuffer[Master_UART_RXLen * 2] =
-	{ 0x25, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x00, 0x32, 0x05, 0xDC, 0x05,
-			0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC,
-			0x05, 0xDC, 0x05, 0xDC, 0x00, 0x00, 0x21, 0x25, 0x05, 0xDC, 0x05,
-			0xDC, 0x05, 0xDC, 0x00, 0x32, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC,
-			0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05,
-			0xDC, 0x00, 0x00, 0x21 };
 	static ControlData_t control_data;
-
 	static uint8_t IS_SIDEPUSH = NORMAL_MODE;
-	static uint8_t IS_ORBIT = ROV_FALSE;
-	static uint8_t IS_FIRST_ORBIT = ROV_FALSE;
 
-	struct Algorithm_PID self_stable_pid;
-	struct Algorithm_PID orbit_pid;
+//	static uint8_t IS_ORBIT = ROV_FALSE;
+//	static uint8_t IS_FIRST_ORBIT = ROV_FALSE;
 
-	int32_t pid_cal = 0;
-	int32_t ss_cal = 0;
-	IMUData_t attitude_detect;
-	int32_t origin_target;
+//	struct Algorithm_PID self_stable_pid;
+//	struct Algorithm_PID orbit_pid;
+//	int32_t pid_cal = 0;
+//	int32_t ss_cal = 0;
+//	IMUData_t attitude_detect;
+//	int32_t origin_target;
 
 	static vu8 relay_controller;
 	static PwmVal_t pwm_controller;
-
-	control_data.FrameHead = 0x25;
-	control_data.StraightNum = 0x05DC;
-	control_data.RotateNum = 0x05DC;
-	control_data.VerticalNum = 0x05DC;
-	control_data.ConveyNum = 0x05DC;
-	control_data.ArmNum[0] = 0x05DC;
-	control_data.ArmNum[1] = 0x05DC;
-	control_data.ArmNum[2] = 0x05DC;
-	control_data.ArmNum[3] = 0x05DC;
-	control_data.ArmNum[4] = 0x05DC;
-	control_data.ArmNum[5] = 0x05DC;
-	control_data.LightNum = 0x05DC;
-	control_data.PanNum = 0x05DC;
-	control_data.RestNum = 0x05DC;
-	control_data.FrameEnd = 0x21;
 
 	pwm_controller.ArmServo[0] = (vu32) 1500;
 	pwm_controller.ArmServo[1] = (vu32) 1500;
@@ -372,30 +367,24 @@ void Thread_ControlEntry(void const *argument)
 	pwm_controller.HorizontalThruster[3] = (vu32) 1500;
 	pwm_controller.VerticalThruster[0] = (vu32) 1500;
 	pwm_controller.VerticalThruster[1] = (vu32) 1500;
-	pwm_controller.LightServo = (vu32) 50;
+	pwm_controller.LightServo = (vu32) 0;
 	pwm_controller.PanServo = (vu32) 1500;
 	pwm_controller.RestServo = (vu32) 1500;
 
-//	__HAL_UART_ENABLE_IT(&Master_UART, UART_IT_IDLE);
-//	HAL_UART_Receive_DMA(&Master_UART, Command_RxBuffer,
-//			sizeof(Command_RxBuffer));
-
-	initPID(&orbit_pid, PID_POSITION_MODE, 0.2);
-	initPID(&self_stable_pid, PID_ERROR_MODE, 21.84);
-	orbit_pid.Kp = -0.005;
-	orbit_pid.Ki = 0.05;
-	orbit_pid.Kd = 0.01;
-	self_stable_pid.Kp = 0.03;
-	self_stable_pid.Ki = 0.2;
-	self_stable_pid.Kd = 0.1;
+//	initPID(&orbit_pid, PID_POSITION_MODE, 0.2);
+//	initPID(&self_stable_pid, PID_ERROR_MODE, 21.84);
+//	orbit_pid.Kp = -0.005;
+//	orbit_pid.Ki = 0.05;
+//	orbit_pid.Kd = 0.01;
+//	self_stable_pid.Kp = 0.03;
+//	self_stable_pid.Ki = 0.2;
+//	self_stable_pid.Kd = 0.1;
 
 	/* Infinite loop */
 	for (;;)
 	{
-		if (xSemaphoreTake(CMD_DONE_semHandle, 0) == pdTRUE)
+		if (xQueueReceive(Cmd_QueueHandle, &control_data, 0) == pdPASS)
 		{
-			control_data = CaptureControlData(Command_RxBuffer);
-
 			//Mode Selection
 			//check side-push
 			if (control_data.Mode & SIDE_PUSH_CODE)
@@ -415,104 +404,159 @@ void Thread_ControlEntry(void const *argument)
 			{
 				relay_controller = (vu8) GPIO_PIN_RESET; //Relay OFF
 			}
-			//check orbit
-			if (control_data.Mode & DIR_CODE)
+			//			//check orbit
+			//			if (control_data.Mode & DIR_CODE)
+			//			{
+			//				if (IS_ORBIT == ROV_FALSE)
+			//				{
+			//					IS_FIRST_ORBIT = ROV_TRUE;
+			//					IS_ORBIT = ROV_TRUE;
+			//				}
+			//				else
+			//				{
+			//					IS_FIRST_ORBIT = ROV_FALSE;
+			//					IS_ORBIT = ROV_TRUE;
+			//				}
+			//			}
+			//			else
+			//			{
+			//				IS_FIRST_ORBIT = ROV_FALSE;
+			//				IS_ORBIT = ROV_FALSE;
+			//			}
+
+			ControlDataAnalysis(control_data, &pwm_controller, IS_SIDEPUSH);
+
+			RestrictPwmValue((pwm_controller.HorizontalThruster[0]), 700, 2300);
+			RestrictPwmValue((pwm_controller.HorizontalThruster[1]), 700, 2300);
+			RestrictPwmValue((pwm_controller.HorizontalThruster[2]), 700, 2300);
+			RestrictPwmValue((pwm_controller.HorizontalThruster[3]), 700, 2300);
+			RestrictPwmValue((pwm_controller.VerticalThruster[0]), 700, 2300);
+			RestrictPwmValue((pwm_controller.VerticalThruster[1]), 700, 2300);
+			RestrictPwmValue((pwm_controller.LightServo), 0, 2000);
+			RestrictPwmValue((pwm_controller.ConveyServo), 500, 2500);
+			RestrictPwmValue((pwm_controller.PanServo), 500, 2500);
+
+			if ((pwm_controller.HorizontalThruster[0] > 1480)
+					&& (pwm_controller.HorizontalThruster[0] < 1520))
 			{
-				if (IS_ORBIT == ROV_FALSE)
-				{
-					IS_FIRST_ORBIT = ROV_TRUE;
-					IS_ORBIT = ROV_TRUE;
-				}
-				else
-				{
-					IS_FIRST_ORBIT = ROV_FALSE;
-					IS_ORBIT = ROV_TRUE;
-				}
+				pwm_controller.HorizontalThruster[0] = 1500;
 			}
-			else
+			if ((pwm_controller.HorizontalThruster[1] > 1480)
+					&& (pwm_controller.HorizontalThruster[1] < 1520))
 			{
-				IS_FIRST_ORBIT = ROV_FALSE;
-				IS_ORBIT = ROV_FALSE;
+				pwm_controller.HorizontalThruster[1] = 1500;
+			}
+			if ((pwm_controller.HorizontalThruster[2] > 1480)
+					&& (pwm_controller.HorizontalThruster[2] < 1520))
+			{
+				pwm_controller.HorizontalThruster[2] = 1500;
+			}
+			if ((pwm_controller.HorizontalThruster[3] > 1480)
+					&& (pwm_controller.HorizontalThruster[3] < 1520))
+			{
+				pwm_controller.HorizontalThruster[3] = 1500;
+			}
+			if ((pwm_controller.VerticalThruster[0] > 1480)
+					&& (pwm_controller.VerticalThruster[0] < 1520))
+			{
+				pwm_controller.VerticalThruster[0] = 1500;
+			}
+			if ((pwm_controller.VerticalThruster[1] > 1480)
+					&& (pwm_controller.VerticalThruster[1] < 1520))
+			{
+				pwm_controller.VerticalThruster[1] = 1500;
 			}
 
-			memset(&Command_RxBuffer, 0, sizeof(Command_RxBuffer));
-			__HAL_UART_ENABLE_IT(&Master_UART, UART_IT_IDLE);
-			HAL_UART_Receive_DMA(&Master_UART, Command_RxBuffer,
-					sizeof(Command_RxBuffer));
+			if ((pwm_controller.ConveyServo > 1470)
+					&& (pwm_controller.ConveyServo < 1530))
+			{
+				pwm_controller.ConveyServo = 1500;
+			}
+
+			if ((pwm_controller.LightServo > 0)
+					&& (pwm_controller.LightServo < 50))
+			{
+				pwm_controller.LightServo = 0;
+			}
+
+			HAL_GPIO_WritePin(Relay_GPIO_Port, Relay_Pin, relay_controller);
+
+			TIM1->CCR2 = pwm_controller.VerticalThruster[0]; //C2 'J8'
+			TIM2->CCR2 = pwm_controller.VerticalThruster[1]; //C1 'J3'
+
+			TIM8->CCR3 = pwm_controller.HorizontalThruster[1]; //A1 'J5'
+			TIM2->CCR3 = pwm_controller.HorizontalThruster[0]; //A2 'J2'
+
+			TIM1->CCR1 = pwm_controller.HorizontalThruster[2]; //B1 'J9'
+			TIM1->CCR3 = pwm_controller.HorizontalThruster[3]; //B2 'J6'
+
+			TIM2->CCR1 = pwm_controller.RestServo; //Pan(not used)
+
+			TIM3->CCR1 = pwm_controller.ArmServo[2]; //Middle Arm
+			TIM3->CCR2 = pwm_controller.ArmServo[1]; //Main Arm
+			TIM3->CCR3 = pwm_controller.ArmServo[0]; //Horizental Arm
+
+			TIM4->CCR2 = pwm_controller.ArmServo[5]; //Rest Machine Arm
+			TIM4->CCR3 = pwm_controller.LightServo; //Light
+			TIM4->CCR4 = (vu32) 1500; //hardware float(not used)
+
+			TIM5->CCR1 = pwm_controller.ConveyServo; //Convey
+			TIM5->CCR2 = pwm_controller.ArmServo[3]; //Front Arm
+
+			//		TIM12->CCR1 = (vu32)1500; //hardware float(not used)
+
+			TIM15->CCR1 = pwm_controller.ArmServo[4]; //Grab Arm
+			TIM15->CCR2 = pwm_controller.PanServo; //Pan
 		}
 
-		ControlDataAnalysis(control_data, &pwm_controller, IS_SIDEPUSH);
+//			if (xSemaphoreTake(MAIN_UART_mutexHandle, 5))
+//			{
+//				memset(&Command_RxBuffer, 0, sizeof(Command_RxBuffer));
+//				__HAL_UART_ENABLE_IT(&Master_UART, UART_IT_IDLE);
+//				HAL_UART_Receive_DMA(&Master_UART, Command_RxBuffer,
+//						sizeof(Command_RxBuffer));
+//				xSemaphoreGive(MAIN_UART_mutexHandle);
+//			}
 
-		xQueueReceive(Attitude_QueueHandle, &attitude_detect, 0); //recv 9-axis data to calculate attitude
-
-		//self stable
-		ss_cal = (int32_t) calculatePID_position(&self_stable_pid,
-				self_stable_pid.FeedBack, attitude_detect.EulerAngle[2]);
-
-		//orbit
-		if (IS_ORBIT == ROV_TRUE)
-		{
-			if (IS_FIRST_ORBIT == ROV_TRUE) //first orbit, get original attitude data
-			{
-				xQueueReceive(Attitude_QueueHandle, &attitude_detect, 0); //recv 9-axis data to calculate attitude
-				origin_target = attitude_detect.EulerAngle[0];
-			}
-			else //normal orbit mode, catch data for many times
-			{
-				pid_cal = (int32_t) calculatePID_position(&orbit_pid,
-						origin_target, attitude_detect.EulerAngle[0]); //orbit: X-axis
-//				printf("%d, %d, %d\r\n", origin_target,
-//						attitude_detect.EulerAngle[0], pid_cal);
-				MoveControl(&pwm_controller, control_data.StraightNum,
-						control_data.RotateNum + pid_cal,
-						control_data.VerticalNum, NORMAL_MODE);
-			}
-		}
-//		else
-//		{
-////			printf("stable: %d, %d, %l\r\n", attitude_detect.EulerAngle[2],
-////					(int32_t)self_stable_pid.FeedBack, ss_cal);
+//			memset(&Command_RxBuffer, 0, sizeof(Command_RxBuffer));
+//			__HAL_UART_ENABLE_IT(&Master_UART, UART_IT_IDLE);
+//			HAL_UART_Receive_DMA(&Master_UART, Command_RxBuffer,
+//					sizeof(Command_RxBuffer));
 //		}
 
-		RestrictPwmValue((pwm_controller.HorizontalThruster[0]), 700, 2300);
-		RestrictPwmValue((pwm_controller.HorizontalThruster[1]), 700, 2300);
-		RestrictPwmValue((pwm_controller.HorizontalThruster[2]), 700, 2300);
-		RestrictPwmValue((pwm_controller.HorizontalThruster[3]), 700, 2300);
-		RestrictPwmValue((pwm_controller.VerticalThruster[0]), 700, 2300);
-		RestrictPwmValue((pwm_controller.VerticalThruster[1]), 700, 2300);
-		RestrictPwmValue((pwm_controller.LightServo), 50, 2000);
+//		xQueueReceive(Attitude_QueueHandle, &attitude_detect, 0); //recv 9-axis data to calculate attitude
 
-		HAL_GPIO_WritePin(Relay_GPIO_Port, Relay_Pin, relay_controller);
+		//self stable
+//		ss_cal = (int32_t) calculatePID_position(&self_stable_pid,
+//				self_stable_pid.FeedBack, attitude_detect.EulerAngle[2]);
 
-		TIM1->CCR1 = pwm_controller.HorizontalThruster[2]; //B1 '9'
-		TIM1->CCR2 = pwm_controller.HorizontalThruster[1]; //A2 '8'
-		TIM1->CCR3 = pwm_controller.HorizontalThruster[0]; //A1 '6'
+		//orbit
+//		if (IS_ORBIT == ROV_TRUE)
+//		{
+//			if (IS_FIRST_ORBIT == ROV_TRUE) //first orbit, get original attitude data
+//			{
+//				xQueueReceive(Attitude_QueueHandle, &attitude_detect, 0); //recv 9-axis data to calculate attitude
+//				origin_target = attitude_detect.EulerAngle[0];
+//			}
+//			else //normal orbit mode, catch data for many times
+//			{
+//				pid_cal = (int32_t) calculatePID_position(&orbit_pid,
+//						origin_target, attitude_detect.EulerAngle[0]); //orbit: X-axis
+////				printf("%d, %d, %d\r\n", origin_target,
+////						attitude_detect.EulerAngle[0], pid_cal);
+//				MoveControl(&pwm_controller, control_data.StraightNum,
+//						control_data.RotateNum + pid_cal,
+//						control_data.VerticalNum, NORMAL_MODE);
+//			}
+//		}
+////		else
+////		{
+//////			printf("stable: %d, %d, %l\r\n", attitude_detect.EulerAngle[2],
+//////					(int32_t)self_stable_pid.FeedBack, ss_cal);
+////		}
 
-		TIM2->CCR1 = pwm_controller.RestServo; //Pan(not used)
-//		TIM2->CCR2 = pwm_controller.VerticalThruster[0] - ss_cal; //C1 '3'
-		TIM2->CCR2 = pwm_controller.VerticalThruster[0]; //C1 '3'
-		TIM2->CCR3 = pwm_controller.HorizontalThruster[3]; //B2 '2'
-
-		TIM3->CCR1 = pwm_controller.ArmServo[2]; //Middle Arm
-		TIM3->CCR2 = pwm_controller.ArmServo[1]; //Main Arm
-		TIM3->CCR3 = pwm_controller.ArmServo[0]; //Horizental Arm
-
-		TIM4->CCR2 = pwm_controller.ArmServo[5]; //Rest Machine Arm
-		TIM4->CCR3 = pwm_controller.LightServo; //Light
-		TIM4->CCR4 = (vu32) 1500; //hardware float(not used)
-
-		TIM5->CCR1 = pwm_controller.ConveyServo; //Convey
-		TIM5->CCR2 = pwm_controller.ArmServo[3]; //Front Arm
-
-//		TIM8->CCR3 = pwm_controller.VerticalThruster[1] + ss_cal; //C2 '5'
-		TIM8->CCR3 = pwm_controller.VerticalThruster[1]; //C2 '5'
-
-//		TIM12->CCR1 = (vu32)1500; //hardware float(not used)
-
-		TIM15->CCR1 = pwm_controller.ArmServo[4]; //Grab Arm
-		TIM15->CCR2 = pwm_controller.PanServo; //Pan
-
-		osDelay(1);
+//		osDelay(100); //??? delay
+		osDelay(50);
 	}
 	/* USER CODE END Thread_ControlEntry */
 }
@@ -535,7 +579,10 @@ void Thread_SensorEntry(void const *argument)
 	report_data.FrameEnd = 0xFFFF;
 	report_data.IdTest = 0x00;
 
-	uint8_t Report_TxBuffer[Master_UART_TXLen];
+	static uint8_t Report_TxBuffer[Master_UART_TXLen];
+
+	HAL_UART_Transmit_DMA(&Master_UART, Report_TxBuffer,
+			sizeof(Report_TxBuffer));
 	/* Infinite loop */
 	for (;;)
 	{
@@ -567,15 +614,83 @@ void Thread_SensorEntry(void const *argument)
 		CaptureReportData(report_data, Report_TxBuffer);
 
 //		HAL_UART_Transmit(&Master_UART, Report_TxBuffer, sizeof(Report_TxBuffer), 0xff);
-		HAL_UART_Transmit_DMA(&Master_UART, Report_TxBuffer,
-				sizeof(Report_TxBuffer));
+//		if (xSemaphoreTake(MAIN_UART_mutexHandle, 5))
+		if (xSemaphoreTake(MAIN_UART_mutexHandle, 0))
+		{
+			if (HAL_UART_GetState(&Master_UART) != HAL_UART_STATE_BUSY_TX) //UART no busy
+			{
+				if (HAL_DMA_GetState(&Master_UART.hdmatx) != HAL_DMA_STATE_BUSY) //wait for DMA tx
+				{
+					if (__HAL_UART_GET_FLAG(&Master_UART,UART_FLAG_TC) == SET) //wait for UART tx
+					{
+						HAL_UART_Transmit_DMA(&Master_UART, Report_TxBuffer,
+								sizeof(Report_TxBuffer));
+					}
+				}
+			}
+			xSemaphoreGive(MAIN_UART_mutexHandle);
+		}
 
-		osDelay(200);
+//		osDelay(200); //wonderful delay
+		osDelay(500); //////////////////////////////////////////////////////////////////////////////////这个位置改了!
 	}
 	/* USER CODE END Thread_SensorEntry */
 }
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
+
+void Thread_RecvCmdEntry(void const *argument)
+{
+	uint8_t Command_RxBuffer[Master_UART_RXLen * 2] =
+	{ 0x25, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x00, 0x32, 0x05, 0xDC, 0x05,
+			0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC,
+			0x05, 0xDC, 0x05, 0xDC, 0x00, 0x00, 0x21, 0x25, 0x05, 0xDC, 0x05,
+			0xDC, 0x05, 0xDC, 0x00, 0x32, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC,
+			0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05,
+			0xDC, 0x00, 0x00, 0x21 };
+	static ControlData_t control_data;
+
+	control_data.FrameHead = 0x25;
+	control_data.StraightNum = 0x05DC;
+	control_data.RotateNum = 0x05DC;
+	control_data.VerticalNum = 0x05DC;
+	control_data.ConveyNum = 0x05DC;
+	control_data.ArmNum[0] = 0x05DC;
+	control_data.ArmNum[1] = 0x05DC;
+	control_data.ArmNum[2] = 0x05DC;
+	control_data.ArmNum[3] = 0x05DC;
+	control_data.ArmNum[4] = 0x05DC;
+	control_data.ArmNum[5] = 0x05DC;
+	control_data.LightNum = 0x0000;
+	control_data.PanNum = 0x05DC;
+	control_data.RestNum = 0x05DC;
+	control_data.FrameEnd = 0x21;
+
+	__HAL_UART_ENABLE_IT(&Master_UART, UART_IT_IDLE);
+	HAL_UART_Receive_DMA(&Master_UART, Command_RxBuffer,
+			sizeof(Command_RxBuffer));
+
+	for (;;)
+	{
+		if (xSemaphoreTake(CMD_DONE_semHandle, 0) == pdTRUE)
+		{
+			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+			CaptureControlData(&control_data, Command_RxBuffer);
+			xQueueSendToFront(Cmd_QueueHandle, (void* )&control_data, 0);
+
+			if (xSemaphoreTake(MAIN_UART_mutexHandle, 0))
+			{
+				memset(&Command_RxBuffer, 0, sizeof(Command_RxBuffer));
+				__HAL_UART_ENABLE_IT(&Master_UART, UART_IT_IDLE);
+				HAL_UART_Receive_DMA(&Master_UART, Command_RxBuffer,
+						sizeof(Command_RxBuffer));
+				xSemaphoreGive(MAIN_UART_mutexHandle);
+			}
+		}
+		osDelay(2); //wonderful delay
+//		osDelay(50);////////////////////////////////////////////////////////////////////这个位置改了
+	}
+}
 
 /* USER CODE END Application */

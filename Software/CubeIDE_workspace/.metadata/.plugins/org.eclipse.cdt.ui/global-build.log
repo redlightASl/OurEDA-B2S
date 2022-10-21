@@ -1,10 +1,19 @@
-16:41:51 **** Incremental Build of configuration Debug for project OurEDA-B2S_CtrlH7 ****
+04:36:04 **** Incremental Build of configuration Debug for project OurEDA-B2S_CtrlH7 ****
 make -j12 all 
 arm-none-eabi-gcc "../Core/Src/freertos.c" -mcpu=cortex-m7 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32H750xx -c -I../Core/Inc -I../Drivers/STM32H7xx_HAL_Driver/Inc -I../Drivers/STM32H7xx_HAL_Driver/Inc/Legacy -I../Middlewares/Third_Party/FreeRTOS/Source/include -I../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS -I../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F -I../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I../Drivers/CMSIS/Include -I"F:/Git_repository/OurEDA/OurEDA-B2S/Software/OurEDA-B2S_CtrlH7/LibROV3" -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -MMD -MP -MF"Core/Src/freertos.d" -MT"Core/Src/freertos.o" --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -o "Core/Src/freertos.o"
 ../Core/Src/freertos.c: In function 'Thread_ControlEntry':
-../Core/Src/freertos.c:509:4: warning: implicit declaration of function 'ControlDataGenerate' [-Wimplicit-function-declaration]
-  509 |    ControlDataGenerate(control_data_origin, Cmd_TxBuffer);
-      |    ^~~~~~~~~~~~~~~~~~~
+../Core/Src/freertos.c:642:26: warning: passing argument 1 of 'HAL_DMA_GetState' from incompatible pointer type [-Wincompatible-pointer-types]
+  642 |     if (HAL_DMA_GetState(&Slave_UART.hdmatx) != HAL_DMA_STATE_BUSY) //wait for DMA tx
+      |                          ^~~~~~~~~~~~~~~~~~
+      |                          |
+      |                          DMA_HandleTypeDef ** {aka struct __DMA_HandleTypeDef **}
+In file included from ../Core/Inc/stm32h7xx_hal_conf.h:254,
+                 from ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal.h:29,
+                 from ../Core/Inc/main.h:30,
+                 from ../Core/Src/freertos.c:23:
+../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_dma.h:1214:58: note: expected 'DMA_HandleTypeDef *' {aka 'struct __DMA_HandleTypeDef *'} but argument is of type 'DMA_HandleTypeDef **' {aka 'struct __DMA_HandleTypeDef **'}
+ 1214 | HAL_DMA_StateTypeDef HAL_DMA_GetState(DMA_HandleTypeDef *hdma);
+      |                                       ~~~~~~~~~~~~~~~~~~~^~~~
 arm-none-eabi-gcc -o "OurEDA-B2S_CtrlH7.elf" @"objects.list"   -mcpu=cortex-m7 -T"F:\Git_repository\OurEDA\OurEDA-B2S\Software\OurEDA-B2S_CtrlH7\STM32H750VBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="OurEDA-B2S_CtrlH7.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 Finished building target: OurEDA-B2S_CtrlH7.elf
  
@@ -12,17 +21,17 @@ arm-none-eabi-objdump -h -S  OurEDA-B2S_CtrlH7.elf  > "OurEDA-B2S_CtrlH7.list"
 arm-none-eabi-objcopy  -O binary  OurEDA-B2S_CtrlH7.elf  "OurEDA-B2S_CtrlH7.bin"
 arm-none-eabi-size   OurEDA-B2S_CtrlH7.elf 
    text	   data	    bss	    dec	    hex	filename
-  59520	     28	  40636	 100184	  18758	OurEDA-B2S_CtrlH7.elf
+  60928	     60	  40804	 101792	  18da0	OurEDA-B2S_CtrlH7.elf
 Finished building: default.size.stdout
  
 Finished building: OurEDA-B2S_CtrlH7.bin
  
 Finished building: OurEDA-B2S_CtrlH7.list
  
-16:41:55 **** Incremental Build of configuration Debug for project OurEDA-B2S_CtrlH7 ****
+04:36:07 **** Incremental Build of configuration Debug for project OurEDA-B2S_CtrlH7 ****
 make -j12 all 
 arm-none-eabi-size   OurEDA-B2S_CtrlH7.elf 
    text	   data	    bss	    dec	    hex	filename
-  59520	     28	  40636	 100184	  18758	OurEDA-B2S_CtrlH7.elf
+  60928	     60	  40804	 101792	  18da0	OurEDA-B2S_CtrlH7.elf
 Finished building: default.size.stdout
  

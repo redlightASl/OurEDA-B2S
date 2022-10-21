@@ -67,12 +67,20 @@ uint32_t Thread_CatchCmdBuffer[512];
 osStaticThreadDef_t Thread_CatchCmdControlBlock;
 
 osMessageQId Rpt_QueueHandle;
-uint8_t Rpt_QueueBuffer[2 * sizeof(ReportData_t)];
+uint8_t Rpt_QueueBuffer[1 * sizeof(ReportData_t)];
 osStaticMessageQDef_t Rpt_QueueControlBlock;
 
 osMessageQId Cmd_QueueHandle;
-uint8_t Cmd_QueueBuffer[2 * sizeof(ControlData_t)];
+uint8_t Cmd_QueueBuffer[1 * sizeof(ControlData_t)];
 osStaticMessageQDef_t Cmd_QueueControlBlock;
+
+osMessageQId WdHover_QueueHandle;
+uint8_t WdHover_QueueBuffer[2 * sizeof(DepthData_t)];
+osStaticMessageQDef_t WdHover_QueueControlBlock;
+
+osMessageQId ImuOrbit_QueueHandle;
+uint8_t ImuOrbit_QueueBuffer[2 * sizeof(IMUData_t)];
+osStaticMessageQDef_t ImuOrbit_QueueControlBlock;
 
 /* USER CODE END Variables */
 osThreadId Thread_IdleHandle;
@@ -131,13 +139,11 @@ static void OpenWrt_Delay(void)
 {
 	for (int i = 0; i < 60; i++)
 	{
-		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 		for (int j = 0; j < 1000; j++)
 		{
 			osDelay(1);
 		}
 	}
-	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
 }
 
 /* USER CODE END FunctionPrototypes */
@@ -241,13 +247,21 @@ void MX_FREERTOS_Init(void)
 
 	/* USER CODE BEGIN RTOS_QUEUES */
 	/* add queues, ... */
-	osMessageQStaticDef(Rpt_Queue, 2, ReportData_t, Rpt_QueueBuffer,
+	osMessageQStaticDef(Rpt_Queue, 1, ReportData_t, Rpt_QueueBuffer,
 			&Rpt_QueueControlBlock);
 	Rpt_QueueHandle = osMessageCreate(osMessageQ(Rpt_Queue), NULL);
 
-	osMessageQStaticDef(Cmd_Queue, 2, ControlData_t, Cmd_QueueBuffer,
+	osMessageQStaticDef(Cmd_Queue, 1, ControlData_t, Cmd_QueueBuffer,
 			&Cmd_QueueControlBlock);
 	Cmd_QueueHandle = osMessageCreate(osMessageQ(Cmd_Queue), NULL);
+
+	osMessageQStaticDef(WdHover_Queue, 2, DepthData_t, WdHover_QueueBuffer,
+			&WdHover_QueueControlBlock);
+	WdHover_QueueHandle = osMessageCreate(osMessageQ(WdHover_Queue), NULL);
+
+	osMessageQStaticDef(ImuOrbit_Queue, 2, IMUData_t, ImuOrbit_QueueBuffer,
+			&ImuOrbit_QueueControlBlock);
+	ImuOrbit_QueueHandle = osMessageCreate(osMessageQ(ImuOrbit_Queue), NULL);
 
 	/* USER CODE END RTOS_QUEUES */
 
@@ -289,14 +303,12 @@ void MX_FREERTOS_Init(void)
 
 	/* USER CODE BEGIN RTOS_THREADS */
 	/* add threads, ... */
-	osThreadStaticDef(Thread_CatchRpt, Thread_CatchRptEntry,
-			osPriorityBelowNormal, 0, 512, Thread_CatchRptBuffer,
-			&Thread_CatchRptControlBlock);
+	osThreadStaticDef(Thread_CatchRpt, Thread_CatchRptEntry, osPriorityNormal,
+			0, 512, Thread_CatchRptBuffer, &Thread_CatchRptControlBlock);
 	Thread_CatchRptHandle = osThreadCreate(osThread(Thread_CatchRpt), NULL);
 
-	osThreadStaticDef(Thread_CatchCmd, Thread_CatchCmdEntry,
-			osPriorityBelowNormal, 0, 512, Thread_CatchCmdBuffer,
-			&Thread_CatchCmdControlBlock);
+	osThreadStaticDef(Thread_CatchCmd, Thread_CatchCmdEntry, osPriorityNormal,
+			0, 512, Thread_CatchCmdBuffer, &Thread_CatchCmdControlBlock);
 	Thread_CatchCmdHandle = osThreadCreate(osThread(Thread_CatchCmd), NULL);
 
 	/* USER CODE END RTOS_THREADS */
@@ -313,11 +325,13 @@ void MX_FREERTOS_Init(void)
 void Thread_IdleEntry(void const *argument)
 {
 	/* USER CODE BEGIN Thread_IdleEntry */
+	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET); //not work: extinguish
+	OpenWrt_Delay();
+
 	/* Infinite loop */
 	for (;;)
 	{
-//		printf("test\r\n");
-//		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin); //working: flash every 0.5s
 		osDelay(500);
 	}
 	/* USER CODE END Thread_IdleEntry */
@@ -393,6 +407,7 @@ void Thread_WT931Entry(void const *argument)
 
 //			printf("wt931:%d,%d,%d\r\n", wt931_data.EulerAngle[0], wt931_data.EulerAngle[1], wt931_data.EulerAngle[2]);
 			xQueueSendToFront(WT931_QueueHandle, (void* )&wt931_data, 0);
+			xQueueSendToFront(ImuOrbit_QueueHandle, (void* )&wt931_data, 0);
 
 			memset(&WT931_RxBuffer, 0, sizeof(WT931_RxBuffer));
 			__HAL_UART_ENABLE_IT(&AXIS_UART, UART_IT_IDLE);
@@ -400,7 +415,7 @@ void Thread_WT931Entry(void const *argument)
 					sizeof(WT931_RxBuffer));
 		}
 		osDelay(10);
-
+//		osDelay(100);
 	}
 	/* USER CODE END Thread_WT931Entry */
 }
@@ -430,11 +445,13 @@ void Thread_WDEntry(void const *argument)
 			wd_data = ReceiveDeep(WD_RxBuffer);
 
 			xQueueSendToFront(WD_QueueHandle, (void* )&wd_data, 0);
+			xQueueSendToFront(WdHover_QueueHandle, (void* )&wd_data, 0);
 
 			memset(&WD_RxBuffer, 0, sizeof(WD_RxBuffer));
 			__HAL_UART_ENABLE_IT(&Deep_UART, UART_IT_IDLE);
 			HAL_UART_Receive_DMA(&Deep_UART, WD_RxBuffer, sizeof(WD_RxBuffer));
 		}
+//		osDelay(10);
 		osDelay(10);
 	}
 	/* USER CODE END Thread_WDEntry */
@@ -478,8 +495,8 @@ void Thread_P30Entry(void const *argument)
 			HAL_UART_Receive_DMA(&SONAR_HEIGHT_UART, P30_RxBuffer,
 					sizeof(P30_RxBuffer));
 		}
-
-		osDelay(10);
+//		osDelay(10);
+		osDelay(100);
 	}
 	/* USER CODE END Thread_P30Entry */
 }
@@ -494,25 +511,154 @@ void Thread_P30Entry(void const *argument)
 void Thread_ControlEntry(void const *argument)
 {
 	/* USER CODE BEGIN Thread_ControlEntry */
-	ControlData_t control_data_origin;
+	BaseType_t ret = pdPASS;
 
+	static ControlData_t control_data_origin;
+//	static uint8_t Cmd_TxBuffer[2 * Slave_UART_TXLEN] =
+//	{ 0x25, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x00, 0x32, 0x05, 0xDC, 0x05,
+//			0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC,
+//			0x05, 0xDC, 0x05, 0xDC, 0x00, 0x00, 0x21, 0x25, 0x05, 0xDC, 0x05,
+//			0xDC, 0x05, 0xDC, 0x00, 0x32, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC,
+//			0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05,
+//			0xDC, 0x00, 0x00, 0x21 };
 	static uint8_t Cmd_TxBuffer[Slave_UART_TXLEN] =
-	{ 0 };
+	{ 0x25, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x00, 0x32, 0x05, 0xDC, 0x05,
+			0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC,
+			0x05, 0xDC, 0x05, 0xDC, 0x00, 0x00, 0x21 };
+
+	DepthData_t current_water_depth;
+//	SonarData_t current_height;
+
+	static uint16_t hover_target = 0;
+	static int32_t hover_pid_result = 0;
+	static uint8_t IS_HOVER = ROV_FALSE;
+	static uint8_t IS_FIRST_HOVER = ROV_FALSE;
+
+	IMUData_t current_direction;
+
+	static uint16_t orbit_target = 0;
+	static int32_t orbit_pid_result = 0;
+	static uint8_t IS_ORBIT = ROV_FALSE;
+	static uint8_t IS_FIRST_ORBIT = ROV_FALSE;
+
+	struct Algorithm_PID hover_pid;
+	struct Algorithm_PID orbit_pid;
+
+	initPID(&hover_pid, PID_POSITION_MODE, 0.2);
+	initPID(&orbit_pid, PID_POSITION_MODE, 0.2);
 
 	OpenWrt_Delay();
 
 	/* Infinite loop */
 	for (;;)
 	{
-		if (xQueueReceive(Cmd_QueueHandle, &control_data_origin, 0) == pdTRUE)
-		{
-			ControlDataGenerate(control_data_origin, Cmd_TxBuffer);
+		ret = xQueueReceive(Cmd_QueueHandle, &control_data_origin, 0);
 
-			HAL_UART_Transmit_DMA(&Slave_UART, Cmd_TxBuffer,
-					sizeof(Cmd_TxBuffer));
-//			memset(&Cmd_TxBuffer, 0, sizeof(Cmd_TxBuffer));
+		if (ret == pdPASS) //analysis data after successful recv
+		{
+			//check hover
+			if (control_data_origin.Mode & DEEP_CODE)
+			{
+				if (IS_HOVER == ROV_FALSE) //first get hover command
+				{
+					IS_FIRST_HOVER = ROV_TRUE;
+					IS_HOVER = ROV_TRUE;
+				}
+				else //have got hover commands
+				{
+					IS_FIRST_HOVER = ROV_FALSE;
+					IS_HOVER = ROV_TRUE;
+				}
+			}
+			else
+			{
+				hover_pid_result = 0;
+				IS_FIRST_HOVER = ROV_FALSE;
+				IS_HOVER = ROV_FALSE;
+			}
+
+			//check orbit
+			if (control_data_origin.Mode & DIR_CODE)
+			{
+				if (IS_ORBIT == ROV_FALSE) //first get orbit command
+				{
+					IS_FIRST_ORBIT = ROV_TRUE;
+					IS_ORBIT = ROV_TRUE;
+				}
+				else //have got orbit commands
+				{
+					IS_FIRST_ORBIT = ROV_FALSE;
+					IS_ORBIT = ROV_TRUE;
+				}
+			}
+			else
+			{
+				orbit_pid_result = 0;
+				IS_FIRST_ORBIT = ROV_FALSE;
+				IS_ORBIT = ROV_FALSE;
+			}
 		}
 
+		//calculate PID as routine
+		if (IS_HOVER == ROV_TRUE)
+		{
+			if (IS_FIRST_HOVER == ROV_TRUE) //first recv hover command
+			{
+				xQueueReceive(WdHover_QueueHandle, &current_water_depth, 0);
+//				xQueueReceive(SonarHover_QueueHandle, &current_height, 0);
+				hover_target = current_water_depth.WaterDepth;
+			}
+			else //routine hover calculation
+			{
+				xQueueReceive(WdHover_QueueHandle, &current_water_depth, 0);
+				hover_pid_result = (int32_t) calculatePID_position(&hover_pid,
+						hover_target, current_water_depth.WaterDepth);
+			}
+		}
+
+		if (IS_ORBIT == ROV_TRUE)
+		{
+			if (IS_FIRST_ORBIT == ROV_TRUE) //first recv orbit command
+			{
+				xQueueReceive(ImuOrbit_QueueHandle, &current_direction, 0);
+				orbit_target = current_direction.EulerAngle[0];
+			}
+			else //routine orbit calculation
+			{
+				xQueueReceive(ImuOrbit_QueueHandle, &current_direction, 0);
+				orbit_pid_result = (int32_t) calculatePID_position(&orbit_pid,
+						orbit_target, current_direction.EulerAngle[0]);
+			}
+		}
+
+		if (ret == pdPASS) //send data to power carbin after successful recv
+		{
+			control_data_origin.VerticalNum += hover_pid_result;
+			control_data_origin.RotateNum += orbit_pid_result;
+			ControlDataGenerate(control_data_origin, Cmd_TxBuffer); //integrate data
+
+			if (HAL_UART_GetState(&Slave_UART) != HAL_UART_STATE_BUSY_TX) //UART no busy
+			{
+				if (HAL_DMA_GetState(&Slave_UART.hdmatx) != HAL_DMA_STATE_BUSY) //wait for DMA tx
+				{
+					if (__HAL_UART_GET_FLAG(&Slave_UART, UART_FLAG_TC) == SET) //wait for UART tx
+					{
+						HAL_UART_Transmit_DMA(&Slave_UART, Cmd_TxBuffer,
+								sizeof(Cmd_TxBuffer));
+					}
+				}
+			}
+		}
+
+//		if(xQueueReceive(Cmd_QueueHandle, &control_data_origin, 0) == pdPASS)
+//		{
+//			ControlDataGenerate(control_data_origin, Cmd_TxBuffer); //integrate data
+//
+//						HAL_UART_Transmit_DMA(&Slave_UART, Cmd_TxBuffer,
+//								sizeof(Cmd_TxBuffer));
+//		}
+
+//		osDelay(50);
 		osDelay(100);
 	}
 	/* USER CODE END Thread_ControlEntry */
@@ -583,7 +729,14 @@ void Thread_ReportEntry(void const *argument)
 		report_data.SonarConfidence = p30_data.Confidence;
 
 		report_data.WaterTemperature = wd_data.WaterTemperature;
-		report_data.WaterDepth = wd_data.WaterDepth;
+		if (wd_data.is_signed == 0x00) //negative
+		{
+			report_data.WaterDepth = (uint16_t) 0;
+		}
+		else //positive or zero
+		{
+			report_data.WaterDepth = wd_data.WaterDepth; //positive numbers are correct
+		}
 
 		//send data to tx_buffer
 		if (CARBIN_REPORT_SEL == 0) //send control carbin
@@ -609,7 +762,8 @@ void Thread_ReportEntry(void const *argument)
 //		CaptureReportData(report_data, Report_TxBuffer);
 //		HAL_UART_Transmit_DMA(&Master_UART, Report_TxBuffer, sizeof(Report_TxBuffer));
 
-		osDelay(100);
+//		osDelay(100);
+		osDelay(200); //wonderful delay
 	}
 	/* USER CODE END Thread_ReportEntry */
 }
@@ -637,7 +791,7 @@ void Thread_CatchRptEntry(void const *argument)
 			HAL_UART_Receive_DMA(&Slave_UART, Report_RxBuffer,
 					sizeof(Report_RxBuffer));
 		}
-		osDelay(1);
+		osDelay(50);
 	}
 }
 
@@ -660,7 +814,7 @@ void Thread_CatchCmdEntry(void const *argument)
 	{
 		if (xSemaphoreTake(CMD_DONE_semHandle, 0) == pdTRUE)
 		{
-			control_data = CaptureControlData(Command_RxBuffer);
+			CaptureControlData(&control_data, Command_RxBuffer);
 
 			xQueueSendToFront(Cmd_QueueHandle, (void* )&control_data, 0);
 
@@ -669,7 +823,7 @@ void Thread_CatchCmdEntry(void const *argument)
 			HAL_UART_Receive_DMA(&Master_UART, Command_RxBuffer,
 					sizeof(Command_RxBuffer));
 		}
-		osDelay(1);
+		osDelay(10);
 	}
 }
 

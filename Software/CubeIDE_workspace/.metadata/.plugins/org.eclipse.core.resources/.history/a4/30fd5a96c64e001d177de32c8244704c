@@ -1,0 +1,88 @@
+/**
+ * @file BasicCtrl.h
+ * @brief 提供姿态控制相关算法
+ * @author RedlightASl (dddbbbdd@foxmail.com)
+ * @version 1.0
+ * @date 2022-06-17
+ *
+ * @copyright Copyright (c) 2022  RedlightASl
+ *
+ * @par 修改日志:
+ * <table>
+ * <tr><th>Date    <th>Version  <th>Author  <th>Description
+ * <tr><td>2022-06-17  <td>1.0      <td>wangh   <td>Content
+ * </table>
+ */
+#ifndef __ROV_BASIC_CTRL_H
+#define __ROV_BASIC_CTRL_H
+#include "Defines.h"
+
+#define SIDE_PUSH_CODE 0x01
+#define DIR_CODE 0x02
+#define DEEP_CODE 0x04
+#define POWER_CODE 0x08
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+struct ReportData {
+	uint8_t FrameHead; //帧头0x25
+	uint8_t CabinFunction; //仓位
+	uint8_t WaterDetect; //漏水检测
+	uint16_t CabinTemperature; //舱内温度
+	uint32_t CabinBarometric; //舱内气压
+	uint16_t CabinHumidity; //舱内湿度
+	uint16_t AccNum[3]; //加速度
+	uint16_t RotNum[3]; //角速度
+	uint16_t EulNum[3]; //欧拉角
+	uint16_t MagNum[3]; //磁场
+	uint32_t SonarHeight; //声呐高度
+	uint16_t SonarConfidence; //声呐确信度
+	uint16_t WaterTemperature; //水温
+	uint16_t WaterDepth; //水深
+	uint8_t IdTest; //校验
+	uint16_t FrameEnd; //帧尾0xFFFF
+};
+typedef struct ReportData ReportData_t;
+
+struct ControlData {
+	uint8_t FrameHead; //帧头0x25
+	uint16_t StraightNum; //前进
+	uint16_t RotateNum; //转向
+	uint16_t VerticalNum; //垂直升降
+	uint16_t LightNum; //灯光
+	uint16_t PanNum; //云台
+	uint16_t ConveyNum; //传送带
+	uint16_t ArmNum[6]; //机械臂
+	uint16_t RestNum; //保留位PWM
+	uint8_t Mode; //模式
+	uint8_t IdTest; //校验
+	uint8_t FrameEnd; //帧尾0x21
+};
+typedef struct ControlData ControlData_t;
+
+struct PwmVal {
+	vu32 HorizontalThruster[NUMBER_OF_HORIZENTAL_THRUSTER]; //水平方向推进器
+	vu32 VerticalThruster[NUMBER_OF_VERTICAL_THRUSTER]; //垂直方向推进器
+	vu32 LightServo; //灯光
+	vu32 PanServo; //云台
+	vu32 ConveyServo; //传送带
+	vu32 ArmServo[6]; //机械臂
+	vu32 RestServo; //保留位PWM
+};
+typedef struct PwmVal PwmVal_t;
+
+ControlData_t CaptureControlData(uint8_t *CommandReceive);
+void ControlDataAnalysis(ControlData_t controller, PwmVal_t *temp_pwm,
+		uint8_t ModeNum);
+void MoveControl(PwmVal_t *ThrusterTemp, uint16_t StraightNum,
+		uint16_t RotateNum, uint16_t VerticalNum, uint8_t ModeNum);
+void CaptureReportData(ReportData_t SendData, uint8_t *ReportTransmit);
+ReportData_t ReportDataAnalysis(uint8_t *ReportReceive);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

@@ -119,9 +119,9 @@ IMUData_t ReceiveWT931(uint8_t *WT931Receive)
 {
 	IMUData_t RecvWT931;
 
-	for (uint8_t i = 0; i < AXIS_UART_RXLen; i++)
+	for (uint8_t i = 0; i < 2 * AXIS_UART_RXLen; i++)
 	{
-		if(i > AXIS_UART_RXLen - 11)
+		if(i > 2 * AXIS_UART_RXLen - 11)
 		{
 			break;
 		}

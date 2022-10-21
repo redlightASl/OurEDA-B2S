@@ -22,14 +22,28 @@
 #define SENSOR_SONAR
 // #define SENSOR_VIDEO
 
+#ifdef SENSOR_IMU
 #define USING_WT931_SENSOR
 // #define USING_BO055_SENSOR
+#endif
+
+#ifdef SENSOR_CARBIN
 #define USING_GY39_SENSOR
 // #define USING_SHT20_SENSOR
-#define USING_GP30_SENSOR
-#define USING_DEPTH_SENSOR
-// #define USING_DISPLAY
+#endif
 
+#ifdef SENSOR_SONAR
+#define USING_GP30_SENSOR
+#endif
+
+#ifdef SENSOR_DEPTH
+#define USING_DEPTH_SENSOR
+//#define USING_ROV_SENSE
+#endif
+
+#ifdef SENSOR_VIDEO
+#define USING_DISPLAY
+#endif
 
 /* 仓位状态选择 */
 //控制仓-汇总数据
@@ -54,7 +68,7 @@
 #ifdef SENSOR_DEPTH
 //深度解算板
 #define Deep_UART huart4
-#define Deep_UART_RXLen 12
+#define Deep_UART_RXLen 15
 #endif
 
 #ifdef SENSOR_SONAR

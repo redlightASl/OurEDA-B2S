@@ -1,0 +1,820 @@
+/* USER CODE BEGIN Header */
+/**
+ ******************************************************************************
+ * File Name          : freertos.c
+ * Description        : Code for freertos applications
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2022 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
+/* USER CODE END Header */
+
+/* Includes ------------------------------------------------------------------*/
+#include "FreeRTOS.h"
+#include "task.h"
+#include "main.h"
+#include "cmsis_os.h"
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
+#include "BasicCtrl.h"
+#include "Sensor.h"
+#include "Algorithm.h"
+
+#include "usart.h"
+#include "gpio.h"
+#include "dma.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+/* USER CODE END Includes */
+
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
+
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
+
+/* Private variables ---------------------------------------------------------*/
+/* USER CODE BEGIN Variables */
+
+osThreadId Thread_CatchRptHandle;
+uint32_t Thread_CatchRptBuffer[512];
+osStaticThreadDef_t Thread_CatchRptControlBlock;
+
+osThreadId Thread_CatchCmdHandle;
+uint32_t Thread_CatchCmdBuffer[512];
+osStaticThreadDef_t Thread_CatchCmdControlBlock;
+
+osMessageQId Rpt_QueueHandle;
+uint8_t Rpt_QueueBuffer[1 * sizeof(ReportData_t)];
+osStaticMessageQDef_t Rpt_QueueControlBlock;
+
+osMessageQId Cmd_QueueHandle;
+uint8_t Cmd_QueueBuffer[1 * sizeof(ControlData_t)];
+osStaticMessageQDef_t Cmd_QueueControlBlock;
+
+osMessageQId WdHover_QueueHandle;
+uint8_t WdHover_QueueBuffer[2 * sizeof(DepthData_t)];
+osStaticMessageQDef_t WdHover_QueueControlBlock;
+
+osMessageQId ImuOrbit_QueueHandle;
+uint8_t ImuOrbit_QueueBuffer[2 * sizeof(IMUData_t)];
+osStaticMessageQDef_t ImuOrbit_QueueControlBlock;
+
+/* USER CODE END Variables */
+osThreadId Thread_IdleHandle;
+uint32_t Thread_IdleBuffer[512];
+osStaticThreadDef_t Thread_IdleControlBlock;
+osThreadId Thread_GY39Handle;
+uint32_t Thread_GY39Buffer[512];
+osStaticThreadDef_t Thread_GY39ControlBlock;
+osThreadId Thread_WT931Handle;
+uint32_t Thread_WT931Buffer[512];
+osStaticThreadDef_t Thread_WT931ControlBlock;
+osThreadId Thread_WDHandle;
+uint32_t Thread_WDBuffer[512];
+osStaticThreadDef_t Thread_WDControlBlock;
+osThreadId Thread_P30Handle;
+uint32_t Thread_P30Buffer[512];
+osStaticThreadDef_t Thread_P30ControlBlock;
+osThreadId Thread_ControlHandle;
+uint32_t Thread_ControlBuffer[512];
+osStaticThreadDef_t Thread_ControlControlBlock;
+osThreadId Thread_ReportHandle;
+uint32_t Thread_ReportBuffer[512];
+osStaticThreadDef_t Thread_ReportControlBlock;
+osMessageQId GY39_QueueHandle;
+uint8_t GY39_QueueBuffer[2 * sizeof(CarbinData_t)];
+osStaticMessageQDef_t GY39_QueueControlBlock;
+osMessageQId WT931_QueueHandle;
+uint8_t WT931_QueueBuffer[2 * sizeof(IMUData_t)];
+osStaticMessageQDef_t WT931_QueueControlBlock;
+osMessageQId WD_QueueHandle;
+uint8_t WD_QueueBuffer[2 * sizeof(DepthData_t)];
+osStaticMessageQDef_t WD_QueueControlBlock;
+osMessageQId P30_QueueHandle;
+uint8_t P30_QueueBuffer[2 * sizeof(SonarData_t)];
+osStaticMessageQDef_t P30_QueueControlBlock;
+osSemaphoreId WT931_DONE_semHandle;
+osStaticSemaphoreDef_t WT931_DONE_semControlBlock;
+osSemaphoreId GY39_DONE_semHandle;
+osStaticSemaphoreDef_t GY39_DONE_semControlBlock;
+osSemaphoreId WD_DONE_semHandle;
+osStaticSemaphoreDef_t WD_DONE_semControlBlock;
+osSemaphoreId P30_DONE_semHandle;
+osStaticSemaphoreDef_t P30_DONE_semControlBlock;
+osSemaphoreId CMD_DONE_semHandle;
+osStaticSemaphoreDef_t CMD_DONE_semControlBlock;
+osSemaphoreId RPT_DONE_semHandle;
+osStaticSemaphoreDef_t RPT_DONE_semControlBlock;
+
+/* Private function prototypes -----------------------------------------------*/
+/* USER CODE BEGIN FunctionPrototypes */
+
+void Thread_CatchRptEntry(void const *argument);
+void Thread_CatchCmdEntry(void const *argument);
+
+static void OpenWrt_Delay(void)
+{
+	for (int i = 0; i < 60; i++)
+	{
+		for (int j = 0; j < 1000; j++)
+		{
+			osDelay(1);
+		}
+	}
+}
+
+/* USER CODE END FunctionPrototypes */
+
+void Thread_IdleEntry(void const *argument);
+void Thread_GY39Entry(void const *argument);
+void Thread_WT931Entry(void const *argument);
+void Thread_WDEntry(void const *argument);
+void Thread_P30Entry(void const *argument);
+void Thread_ControlEntry(void const *argument);
+void Thread_ReportEntry(void const *argument);
+
+void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
+
+/* GetIdleTaskMemory prototype (linked to static allocation support) */
+void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer,
+		StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize);
+
+/* USER CODE BEGIN GET_IDLE_TASK_MEMORY */
+static StaticTask_t xIdleTaskTCBBuffer;
+static StackType_t xIdleStack[configMINIMAL_STACK_SIZE];
+
+void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer,
+		StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize)
+{
+	*ppxIdleTaskTCBBuffer = &xIdleTaskTCBBuffer;
+	*ppxIdleTaskStackBuffer = &xIdleStack[0];
+	*pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
+	/* place for user code */
+}
+/* USER CODE END GET_IDLE_TASK_MEMORY */
+
+/**
+ * @brief  FreeRTOS initialization
+ * @param  None
+ * @retval None
+ */
+void MX_FREERTOS_Init(void)
+{
+	/* USER CODE BEGIN Init */
+
+	/* USER CODE END Init */
+
+	/* USER CODE BEGIN RTOS_MUTEX */
+	/* add mutexes, ... */
+	/* USER CODE END RTOS_MUTEX */
+
+	/* Create the semaphores(s) */
+	/* definition and creation of WT931_DONE_sem */
+	osSemaphoreStaticDef(WT931_DONE_sem, &WT931_DONE_semControlBlock);
+	WT931_DONE_semHandle = osSemaphoreCreate(osSemaphore(WT931_DONE_sem), 1);
+
+	/* definition and creation of GY39_DONE_sem */
+	osSemaphoreStaticDef(GY39_DONE_sem, &GY39_DONE_semControlBlock);
+	GY39_DONE_semHandle = osSemaphoreCreate(osSemaphore(GY39_DONE_sem), 1);
+
+	/* definition and creation of WD_DONE_sem */
+	osSemaphoreStaticDef(WD_DONE_sem, &WD_DONE_semControlBlock);
+	WD_DONE_semHandle = osSemaphoreCreate(osSemaphore(WD_DONE_sem), 1);
+
+	/* definition and creation of P30_DONE_sem */
+	osSemaphoreStaticDef(P30_DONE_sem, &P30_DONE_semControlBlock);
+	P30_DONE_semHandle = osSemaphoreCreate(osSemaphore(P30_DONE_sem), 1);
+
+	/* definition and creation of CMD_DONE_sem */
+	osSemaphoreStaticDef(CMD_DONE_sem, &CMD_DONE_semControlBlock);
+	CMD_DONE_semHandle = osSemaphoreCreate(osSemaphore(CMD_DONE_sem), 1);
+
+	/* definition and creation of RPT_DONE_sem */
+	osSemaphoreStaticDef(RPT_DONE_sem, &RPT_DONE_semControlBlock);
+	RPT_DONE_semHandle = osSemaphoreCreate(osSemaphore(RPT_DONE_sem), 1);
+
+	/* USER CODE BEGIN RTOS_SEMAPHORES */
+	/* add semaphores, ... */
+	/* USER CODE END RTOS_SEMAPHORES */
+
+	/* USER CODE BEGIN RTOS_TIMERS */
+	/* start timers, add new ones, ... */
+	/* USER CODE END RTOS_TIMERS */
+
+	/* Create the queue(s) */
+	/* definition and creation of GY39_Queue */
+	osMessageQStaticDef(GY39_Queue, 2, CarbinData_t, GY39_QueueBuffer,
+			&GY39_QueueControlBlock);
+	GY39_QueueHandle = osMessageCreate(osMessageQ(GY39_Queue), NULL);
+
+	/* definition and creation of WT931_Queue */
+	osMessageQStaticDef(WT931_Queue, 2, IMUData_t, WT931_QueueBuffer,
+			&WT931_QueueControlBlock);
+	WT931_QueueHandle = osMessageCreate(osMessageQ(WT931_Queue), NULL);
+
+	/* definition and creation of WD_Queue */
+	osMessageQStaticDef(WD_Queue, 2, DepthData_t, WD_QueueBuffer,
+			&WD_QueueControlBlock);
+	WD_QueueHandle = osMessageCreate(osMessageQ(WD_Queue), NULL);
+
+	/* definition and creation of P30_Queue */
+	osMessageQStaticDef(P30_Queue, 2, SonarData_t, P30_QueueBuffer,
+			&P30_QueueControlBlock);
+	P30_QueueHandle = osMessageCreate(osMessageQ(P30_Queue), NULL);
+
+	/* USER CODE BEGIN RTOS_QUEUES */
+	/* add queues, ... */
+	osMessageQStaticDef(Rpt_Queue, 1, ReportData_t, Rpt_QueueBuffer,
+			&Rpt_QueueControlBlock);
+	Rpt_QueueHandle = osMessageCreate(osMessageQ(Rpt_Queue), NULL);
+
+	osMessageQStaticDef(Cmd_Queue, 1, ControlData_t, Cmd_QueueBuffer,
+			&Cmd_QueueControlBlock);
+	Cmd_QueueHandle = osMessageCreate(osMessageQ(Cmd_Queue), NULL);
+
+	osMessageQStaticDef(WdHover_Queue, 2, DepthData_t, WdHover_QueueBuffer,
+			&WdHover_QueueControlBlock);
+	WdHover_QueueHandle = osMessageCreate(osMessageQ(WdHover_Queue), NULL);
+
+	osMessageQStaticDef(ImuOrbit_Queue, 2, IMUData_t, ImuOrbit_QueueBuffer,
+			&ImuOrbit_QueueControlBlock);
+	ImuOrbit_QueueHandle = osMessageCreate(osMessageQ(ImuOrbit_Queue), NULL);
+
+	/* USER CODE END RTOS_QUEUES */
+
+	/* Create the thread(s) */
+	/* definition and creation of Thread_Idle */
+	osThreadStaticDef(Thread_Idle, Thread_IdleEntry, osPriorityLow, 0, 512,
+			Thread_IdleBuffer, &Thread_IdleControlBlock);
+	Thread_IdleHandle = osThreadCreate(osThread(Thread_Idle), NULL);
+
+	/* definition and creation of Thread_GY39 */
+	osThreadStaticDef(Thread_GY39, Thread_GY39Entry, osPriorityBelowNormal, 0,
+			512, Thread_GY39Buffer, &Thread_GY39ControlBlock);
+	Thread_GY39Handle = osThreadCreate(osThread(Thread_GY39), NULL);
+
+	/* definition and creation of Thread_WT931 */
+	osThreadStaticDef(Thread_WT931, Thread_WT931Entry, osPriorityBelowNormal, 0,
+			512, Thread_WT931Buffer, &Thread_WT931ControlBlock);
+	Thread_WT931Handle = osThreadCreate(osThread(Thread_WT931), NULL);
+
+	/* definition and creation of Thread_WD */
+	osThreadStaticDef(Thread_WD, Thread_WDEntry, osPriorityBelowNormal, 0, 512,
+			Thread_WDBuffer, &Thread_WDControlBlock);
+	Thread_WDHandle = osThreadCreate(osThread(Thread_WD), NULL);
+
+	/* definition and creation of Thread_P30 */
+	osThreadStaticDef(Thread_P30, Thread_P30Entry, osPriorityBelowNormal, 0,
+			512, Thread_P30Buffer, &Thread_P30ControlBlock);
+	Thread_P30Handle = osThreadCreate(osThread(Thread_P30), NULL);
+
+	/* definition and creation of Thread_Control */
+	osThreadStaticDef(Thread_Control, Thread_ControlEntry, osPriorityNormal, 0,
+			512, Thread_ControlBuffer, &Thread_ControlControlBlock);
+	Thread_ControlHandle = osThreadCreate(osThread(Thread_Control), NULL);
+
+	/* definition and creation of Thread_Report */
+	osThreadStaticDef(Thread_Report, Thread_ReportEntry, osPriorityNormal, 0,
+			512, Thread_ReportBuffer, &Thread_ReportControlBlock);
+	Thread_ReportHandle = osThreadCreate(osThread(Thread_Report), NULL);
+
+	/* USER CODE BEGIN RTOS_THREADS */
+	/* add threads, ... */
+	osThreadStaticDef(Thread_CatchRpt, Thread_CatchRptEntry, osPriorityNormal,
+			0, 512, Thread_CatchRptBuffer, &Thread_CatchRptControlBlock);
+	Thread_CatchRptHandle = osThreadCreate(osThread(Thread_CatchRpt), NULL);
+
+	osThreadStaticDef(Thread_CatchCmd, Thread_CatchCmdEntry, osPriorityNormal,
+			0, 512, Thread_CatchCmdBuffer, &Thread_CatchCmdControlBlock);
+	Thread_CatchCmdHandle = osThreadCreate(osThread(Thread_CatchCmd), NULL);
+
+	/* USER CODE END RTOS_THREADS */
+
+}
+
+/* USER CODE BEGIN Header_Thread_IdleEntry */
+/**
+ * @brief  Function implementing the Thread_Idle thread.
+ * @param  argument: Not used
+ * @retval None
+ */
+/* USER CODE END Header_Thread_IdleEntry */
+void Thread_IdleEntry(void const *argument)
+{
+	/* USER CODE BEGIN Thread_IdleEntry */
+	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET); //not work: extinguish
+	OpenWrt_Delay();
+
+	/* Infinite loop */
+	for (;;)
+	{
+		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin); //working: flash every 0.5s
+		osDelay(500);
+	}
+	/* USER CODE END Thread_IdleEntry */
+}
+
+/* USER CODE BEGIN Header_Thread_GY39Entry */
+/**
+ * @brief Function implementing the Thread_GY39 thread.
+ * @param argument: Not used
+ * @retval None
+ */
+/* USER CODE END Header_Thread_GY39Entry */
+void Thread_GY39Entry(void const *argument)
+{
+	/* USER CODE BEGIN Thread_GY39Entry */
+	uint8_t GY39_TxBuffer[TEMPER_UART_TXLen] =
+	{ 0 };
+	uint8_t GY39_RxBuffer[TEMPER_UART_RXLen] =
+	{ 0 };
+	CarbinData_t gy39_data;
+
+	InitGY39(GY39_TxBuffer);
+	HAL_UART_Transmit_DMA(&TEMPER_UART, GY39_TxBuffer, sizeof(GY39_TxBuffer));
+
+	__HAL_UART_ENABLE_IT(&TEMPER_UART, UART_IT_IDLE);
+	HAL_UART_Receive_DMA(&TEMPER_UART, GY39_RxBuffer, sizeof(GY39_RxBuffer));
+
+	/* Infinite loop */
+	for (;;)
+	{
+		if (xSemaphoreTake(GY39_DONE_semHandle, 0) == pdTRUE)
+		{
+			gy39_data = ReceiveGY39(GY39_RxBuffer);
+
+//			printf("t:%d, %d, %d\r\n", gy39_data.CarbinBarometric,
+//					gy39_data.CarbinHumidity, gy39_data.CarbinTemperature);
+			xQueueSendToFront(GY39_QueueHandle, (void* )&gy39_data, 0);
+
+			memset(&GY39_RxBuffer, 0, sizeof(GY39_RxBuffer));
+			__HAL_UART_ENABLE_IT(&TEMPER_UART, UART_IT_IDLE);
+			HAL_UART_Receive_DMA(&TEMPER_UART, GY39_RxBuffer,
+					sizeof(GY39_RxBuffer));
+		}
+
+		osDelay(100);
+	}
+	/* USER CODE END Thread_GY39Entry */
+}
+
+/* USER CODE BEGIN Header_Thread_WT931Entry */
+/**
+ * @brief Function implementing the Thread_WT931 thread.
+ * @param argument: Not used
+ * @retval None
+ */
+/* USER CODE END Header_Thread_WT931Entry */
+void Thread_WT931Entry(void const *argument)
+{
+	/* USER CODE BEGIN Thread_WT931Entry */
+	uint8_t WT931_RxBuffer[AXIS_UART_RXLen] =
+	{ 0 };
+	IMUData_t wt931_data;
+
+	__HAL_UART_ENABLE_IT(&AXIS_UART, UART_IT_IDLE);
+	HAL_UART_Receive_DMA(&AXIS_UART, WT931_RxBuffer, sizeof(WT931_RxBuffer));
+
+	/* Infinite loop */
+	for (;;)
+	{
+		if (xSemaphoreTake(WT931_DONE_semHandle, 0) == pdTRUE)
+		{
+			wt931_data = ReceiveWT931(WT931_RxBuffer);
+
+//			printf("wt931:%d,%d,%d\r\n", wt931_data.EulerAngle[0], wt931_data.EulerAngle[1], wt931_data.EulerAngle[2]);
+			xQueueSendToFront(WT931_QueueHandle, (void* )&wt931_data, 0);
+			xQueueSendToFront(ImuOrbit_QueueHandle, (void* )&wt931_data, 0);
+
+			memset(&WT931_RxBuffer, 0, sizeof(WT931_RxBuffer));
+			__HAL_UART_ENABLE_IT(&AXIS_UART, UART_IT_IDLE);
+			HAL_UART_Receive_DMA(&AXIS_UART, WT931_RxBuffer,
+					sizeof(WT931_RxBuffer));
+		}
+		osDelay(10);
+//		osDelay(100);
+	}
+	/* USER CODE END Thread_WT931Entry */
+}
+
+/* USER CODE BEGIN Header_Thread_WDEntry */
+/**
+ * @brief Function implementing the Thread_WD thread.
+ * @param argument: Not used
+ * @retval None
+ */
+/* USER CODE END Header_Thread_WDEntry */
+void Thread_WDEntry(void const *argument)
+{
+	/* USER CODE BEGIN Thread_WDEntry */
+	uint8_t WD_RxBuffer[Deep_UART_RXLen] =
+	{ 0 };
+	DepthData_t wd_data;
+
+	__HAL_UART_ENABLE_IT(&Deep_UART, UART_IT_IDLE);
+	HAL_UART_Receive_DMA(&Deep_UART, WD_RxBuffer, sizeof(WD_RxBuffer));
+
+	/* Infinite loop */
+	for (;;)
+	{
+		if (xSemaphoreTake(WD_DONE_semHandle, 0) == pdTRUE)
+		{
+			wd_data = ReceiveDeep(WD_RxBuffer);
+
+			xQueueSendToFront(WD_QueueHandle, (void* )&wd_data, 0);
+			xQueueSendToFront(WdHover_QueueHandle, (void* )&wd_data, 0);
+
+			memset(&WD_RxBuffer, 0, sizeof(WD_RxBuffer));
+			__HAL_UART_ENABLE_IT(&Deep_UART, UART_IT_IDLE);
+			HAL_UART_Receive_DMA(&Deep_UART, WD_RxBuffer, sizeof(WD_RxBuffer));
+		}
+//		osDelay(10);
+		osDelay(10);
+	}
+	/* USER CODE END Thread_WDEntry */
+}
+
+/* USER CODE BEGIN Header_Thread_P30Entry */
+/**
+ * @brief Function implementing the Thread_P30 thread.
+ * @param argument: Not used
+ * @retval None
+ */
+/* USER CODE END Header_Thread_P30Entry */
+void Thread_P30Entry(void const *argument)
+{
+	/* USER CODE BEGIN Thread_P30Entry */
+	uint8_t P30_TxBuffer[SONAR_HEIGHT_UART_TXLen] =
+	{ 0 };
+	uint8_t P30_RxBuffer[SONAR_HEIGHT_UART_RXLen] =
+	{ 0 };
+	SonarData_t p30_data;
+
+	InitP30(P30_TxBuffer);
+	HAL_UART_Transmit_DMA(&SONAR_HEIGHT_UART, P30_TxBuffer,
+			sizeof(P30_TxBuffer));
+
+	__HAL_UART_ENABLE_IT(&SONAR_HEIGHT_UART, UART_IT_IDLE);
+	HAL_UART_Receive_DMA(&SONAR_HEIGHT_UART, P30_RxBuffer,
+			sizeof(P30_RxBuffer));
+
+	/* Infinite loop */
+	for (;;)
+	{
+		if (xSemaphoreTake(P30_DONE_semHandle, 0) == pdTRUE)
+		{
+			p30_data = ReceiveP30(P30_RxBuffer);
+
+			xQueueSendToFront(P30_QueueHandle, (void* )&p30_data, 0);
+
+			memset(&P30_RxBuffer, 0, sizeof(P30_RxBuffer));
+			__HAL_UART_ENABLE_IT(&SONAR_HEIGHT_UART, UART_IT_IDLE);
+			HAL_UART_Receive_DMA(&SONAR_HEIGHT_UART, P30_RxBuffer,
+					sizeof(P30_RxBuffer));
+		}
+//		osDelay(10);
+		osDelay(100);
+	}
+	/* USER CODE END Thread_P30Entry */
+}
+
+/* USER CODE BEGIN Header_Thread_ControlEntry */
+/**
+ * @brief Function implementing the Thread_Control thread.
+ * @param argument: Not used
+ * @retval None
+ */
+/* USER CODE END Header_Thread_ControlEntry */
+void Thread_ControlEntry(void const *argument)
+{
+	/* USER CODE BEGIN Thread_ControlEntry */
+	BaseType_t ret = pdPASS;
+
+	static ControlData_t control_data_origin;
+//	static uint8_t Cmd_TxBuffer[2 * Slave_UART_TXLEN] =
+//	{ 0x25, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x00, 0x32, 0x05, 0xDC, 0x05,
+//			0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC,
+//			0x05, 0xDC, 0x05, 0xDC, 0x00, 0x00, 0x21, 0x25, 0x05, 0xDC, 0x05,
+//			0xDC, 0x05, 0xDC, 0x00, 0x32, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC,
+//			0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05,
+//			0xDC, 0x00, 0x00, 0x21 };
+	static uint8_t Cmd_TxBuffer[Slave_UART_TXLEN] =
+	{ 0x25, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x00, 0x32, 0x05, 0xDC, 0x05,
+			0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC,
+			0x05, 0xDC, 0x05, 0xDC, 0x00, 0x00, 0x21 };
+
+	DepthData_t current_water_depth;
+//	SonarData_t current_height;
+
+	static uint16_t hover_target = 0;
+	static int32_t hover_pid_result = 0;
+	static uint8_t IS_HOVER = ROV_FALSE;
+	static uint8_t IS_FIRST_HOVER = ROV_FALSE;
+
+	IMUData_t current_direction;
+
+	static uint16_t orbit_target = 0;
+	static int32_t orbit_pid_result = 0;
+	static uint8_t IS_ORBIT = ROV_FALSE;
+	static uint8_t IS_FIRST_ORBIT = ROV_FALSE;
+
+	struct Algorithm_PID hover_pid;
+	struct Algorithm_PID orbit_pid;
+
+	initPID(&hover_pid, PID_POSITION_MODE, 0.2);
+	initPID(&orbit_pid, PID_POSITION_MODE, 0.2);
+
+	OpenWrt_Delay();
+
+	/* Infinite loop */
+	for (;;)
+	{
+		ret = xQueueReceive(Cmd_QueueHandle, &control_data_origin, 0);
+
+		if (ret == pdPASS) //analysis data after successful recv
+		{
+			//check hover
+			if (control_data_origin.Mode & DEEP_CODE)
+			{
+				if (IS_HOVER == ROV_FALSE) //first get hover command
+				{
+					IS_FIRST_HOVER = ROV_TRUE;
+					IS_HOVER = ROV_TRUE;
+				}
+				else //have got hover commands
+				{
+					IS_FIRST_HOVER = ROV_FALSE;
+					IS_HOVER = ROV_TRUE;
+				}
+			}
+			else
+			{
+				hover_pid_result = 0;
+				IS_FIRST_HOVER = ROV_FALSE;
+				IS_HOVER = ROV_FALSE;
+			}
+
+			//check orbit
+			if (control_data_origin.Mode & DIR_CODE)
+			{
+				if (IS_ORBIT == ROV_FALSE) //first get orbit command
+				{
+					IS_FIRST_ORBIT = ROV_TRUE;
+					IS_ORBIT = ROV_TRUE;
+				}
+				else //have got orbit commands
+				{
+					IS_FIRST_ORBIT = ROV_FALSE;
+					IS_ORBIT = ROV_TRUE;
+				}
+			}
+			else
+			{
+				orbit_pid_result = 0;
+				IS_FIRST_ORBIT = ROV_FALSE;
+				IS_ORBIT = ROV_FALSE;
+			}
+		}
+
+		//calculate PID as routine
+		if (IS_HOVER == ROV_TRUE)
+		{
+			if (IS_FIRST_HOVER == ROV_TRUE) //first recv hover command
+			{
+				xQueueReceive(WdHover_QueueHandle, &current_water_depth, 0);
+//				xQueueReceive(SonarHover_QueueHandle, &current_height, 0);
+				hover_target = current_water_depth.WaterDepth;
+			}
+			else //routine hover calculation
+			{
+				xQueueReceive(WdHover_QueueHandle, &current_water_depth, 0);
+				hover_pid_result = (int32_t) calculatePID_position(&hover_pid,
+						hover_target, current_water_depth.WaterDepth);
+			}
+		}
+
+		if (IS_ORBIT == ROV_TRUE)
+		{
+			if (IS_FIRST_ORBIT == ROV_TRUE) //first recv orbit command
+			{
+				xQueueReceive(ImuOrbit_QueueHandle, &current_direction, 0);
+				orbit_target = current_direction.EulerAngle[0];
+			}
+			else //routine orbit calculation
+			{
+				xQueueReceive(ImuOrbit_QueueHandle, &current_direction, 0);
+				orbit_pid_result = (int32_t) calculatePID_position(&orbit_pid,
+						orbit_target, current_direction.EulerAngle[0]);
+			}
+		}
+
+		if (ret == pdPASS) //send data to power carbin after successful recv
+		{
+			control_data_origin.VerticalNum += hover_pid_result;
+			control_data_origin.RotateNum += orbit_pid_result;
+			ControlDataGenerate(control_data_origin, Cmd_TxBuffer); //integrate data
+
+			HAL_UART_Transmit_DMA(&Slave_UART, Cmd_TxBuffer,
+					sizeof(Cmd_TxBuffer));
+		}
+
+//		if(xQueueReceive(Cmd_QueueHandle, &control_data_origin, 0) == pdPASS)
+//		{
+//			ControlDataGenerate(control_data_origin, Cmd_TxBuffer); //integrate data
+//
+//						HAL_UART_Transmit_DMA(&Slave_UART, Cmd_TxBuffer,
+//								sizeof(Cmd_TxBuffer));
+//		}
+
+		osDelay(50);
+	}
+	/* USER CODE END Thread_ControlEntry */
+}
+
+/* USER CODE BEGIN Header_Thread_ReportEntry */
+/**
+ * @brief Function implementing the Thread_Report thread.
+ * @param argument: Not used
+ * @retval None
+ */
+/* USER CODE END Header_Thread_ReportEntry */
+void Thread_ReportEntry(void const *argument)
+{
+	/* USER CODE BEGIN Thread_ReportEntry */
+	static uint8_t CARBIN_REPORT_SEL = 0;
+
+	static IMUData_t wt931_data;
+	static CarbinData_t gy39_data;
+	static DepthData_t wd_data;
+	static SonarData_t p30_data;
+	static ReportData_t rpt_data_powcarbin;
+
+//	static uint8_t Report_RxBuffer[Slave_UART_RXLen] =
+//	{ 0 };
+
+	uint8_t Report_TxBuffer[Master_UART_TXLen] =
+	{ 0 };
+
+	static ReportData_t report_data;
+	report_data.FrameHead = 0x25;
+	report_data.CabinFunction = 0x01;
+	report_data.FrameEnd = 0xFFFF;
+	report_data.IdTest = 0x00;
+
+	OpenWrt_Delay();
+
+	/* Infinite loop */
+	for (;;)
+	{
+		xQueueReceive(GY39_QueueHandle, &gy39_data, 0);
+		xQueueReceive(WT931_QueueHandle, &wt931_data, 0);
+		xQueueReceive(WD_QueueHandle, &wd_data, 0);
+		xQueueReceive(P30_QueueHandle, &p30_data, 0);
+		xQueueReceive(Rpt_QueueHandle, &rpt_data_powcarbin, 0);
+
+		report_data.WaterDetect = HAL_GPIO_ReadPin(WATER_DET_GPIO_Port,
+		WATER_DET_Pin);
+
+		report_data.CabinTemperature = gy39_data.CarbinTemperature;
+		report_data.CabinBarometric = gy39_data.CarbinBarometric;
+		report_data.CabinHumidity = gy39_data.CarbinHumidity;
+
+		report_data.AccNum[0] = wt931_data.Acceleration[0];
+		report_data.AccNum[1] = wt931_data.Acceleration[1];
+		report_data.AccNum[2] = wt931_data.Acceleration[2];
+		report_data.RotNum[0] = wt931_data.AngularSpeed[0];
+		report_data.RotNum[1] = wt931_data.AngularSpeed[1];
+		report_data.RotNum[2] = wt931_data.AngularSpeed[2];
+		report_data.EulNum[0] = wt931_data.EulerAngle[0];
+		report_data.EulNum[1] = wt931_data.EulerAngle[1];
+		report_data.EulNum[2] = wt931_data.EulerAngle[2];
+		report_data.MagNum[0] = wt931_data.MagneticValue[0];
+		report_data.MagNum[1] = wt931_data.MagneticValue[1];
+		report_data.MagNum[2] = wt931_data.MagneticValue[2];
+
+		report_data.SonarHeight = p30_data.SonarHeight;
+		report_data.SonarConfidence = p30_data.Confidence;
+
+		report_data.WaterTemperature = wd_data.WaterTemperature;
+		if (wd_data.is_signed == 0x00) //negative
+		{
+			report_data.WaterDepth = (uint16_t) 0;
+		}
+		else //positive or zero
+		{
+			report_data.WaterDepth = wd_data.WaterDepth; //positive numbers are correct
+		}
+
+		//send data to tx_buffer
+		if (CARBIN_REPORT_SEL == 0) //send control carbin
+		{
+			report_data.CabinFunction = 0x01;
+
+			CaptureReportData(report_data, Report_TxBuffer);
+
+			HAL_UART_Transmit_DMA(&Master_UART, Report_TxBuffer,
+					sizeof(Report_TxBuffer));
+			CARBIN_REPORT_SEL = 1;
+		}
+		else //send power carbin
+		{
+			CaptureReportData(rpt_data_powcarbin, Report_TxBuffer);
+
+			HAL_UART_Transmit_DMA(&Master_UART, Report_TxBuffer,
+					sizeof(Report_TxBuffer));
+			CARBIN_REPORT_SEL = 0;
+		}
+
+//		printf("conc:%d,%d\r\n",report_data.EulNum[0],report_data.CabinTemperature);
+//		CaptureReportData(report_data, Report_TxBuffer);
+//		HAL_UART_Transmit_DMA(&Master_UART, Report_TxBuffer, sizeof(Report_TxBuffer));
+
+//		osDelay(100);
+		osDelay(200);
+	}
+	/* USER CODE END Thread_ReportEntry */
+}
+
+/* Private application code --------------------------------------------------*/
+/* USER CODE BEGIN Application */
+void Thread_CatchRptEntry(void const *argument)
+{
+	uint8_t Report_RxBuffer[2 * Slave_UART_RXLen] =
+	{ 0 };
+	ReportData_t rpt_data;
+
+	__HAL_UART_ENABLE_IT(&Slave_UART, UART_IT_IDLE);
+	HAL_UART_Receive_DMA(&Slave_UART, Report_RxBuffer, sizeof(Report_RxBuffer));
+	for (;;)
+	{
+		if (xSemaphoreTake(RPT_DONE_semHandle, 0) == pdTRUE)
+		{
+			rpt_data = ReportDataAnalysis(Report_RxBuffer);
+
+			xQueueSendToFront(Rpt_QueueHandle, (void* )&rpt_data, 0);
+
+			memset(&Report_RxBuffer, 0, sizeof(Report_RxBuffer));
+			__HAL_UART_ENABLE_IT(&Slave_UART, UART_IT_IDLE);
+			HAL_UART_Receive_DMA(&Slave_UART, Report_RxBuffer,
+					sizeof(Report_RxBuffer));
+		}
+		osDelay(10);
+	}
+}
+
+void Thread_CatchCmdEntry(void const *argument)
+{
+	uint8_t Command_RxBuffer[2 * Master_UART_RXLen] =
+	{ 0x25, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x00, 0x32, 0x05, 0xDC, 0x05,
+			0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC,
+			0x05, 0xDC, 0x05, 0xDC, 0x00, 0x00, 0x21, 0x25, 0x05, 0xDC, 0x05,
+			0xDC, 0x05, 0xDC, 0x00, 0x32, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC,
+			0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05,
+			0xDC, 0x00, 0x00, 0x21 };
+
+	ControlData_t control_data;
+
+	__HAL_UART_ENABLE_IT(&Master_UART, UART_IT_IDLE);
+	HAL_UART_Receive_DMA(&Master_UART, Command_RxBuffer,
+			sizeof(Command_RxBuffer));
+	for (;;)
+	{
+		if (xSemaphoreTake(CMD_DONE_semHandle, 0) == pdTRUE)
+		{
+			CaptureControlData(&control_data, Command_RxBuffer);
+
+			xQueueSendToFront(Cmd_QueueHandle, (void* )&control_data, 0);
+
+			memset(&Command_RxBuffer, 0, sizeof(Command_RxBuffer));
+			__HAL_UART_ENABLE_IT(&Master_UART, UART_IT_IDLE);
+			HAL_UART_Receive_DMA(&Master_UART, Command_RxBuffer,
+					sizeof(Command_RxBuffer));
+		}
+		osDelay(10);
+	}
+}
+
+/* USER CODE END Application */

@@ -1,0 +1,656 @@
+/* USER CODE BEGIN Header */
+/**
+ ******************************************************************************
+ * File Name          : freertos.c
+ * Description        : Code for freertos applications
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2022 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
+/* USER CODE END Header */
+
+/* Includes ------------------------------------------------------------------*/
+#include "FreeRTOS.h"
+#include "task.h"
+#include "main.h"
+#include "cmsis_os.h"
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
+#include "BasicCtrl.h"
+#include "Sensor.h"
+#include "Algorithm.h"
+
+#include "usart.h"
+#include "gpio.h"
+#include "dma.h"
+#include "tim.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+/* USER CODE END Includes */
+
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
+
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
+
+/* Private variables ---------------------------------------------------------*/
+/* USER CODE BEGIN Variables */
+
+/* USER CODE END Variables */
+osThreadId Thread_IdleHandle;
+uint32_t Thread_IdleBuffer[512];
+osStaticThreadDef_t Thread_IdleControlBlock;
+osThreadId Thread_GY39Handle;
+uint32_t Thread_GY39Buffer[512];
+osStaticThreadDef_t Thread_GY39ControlBlock;
+osThreadId Thread_WT931Handle;
+uint32_t Thread_WT931Buffer[512];
+osStaticThreadDef_t Thread_WT931ControlBlock;
+osThreadId Thread_ControlHandle;
+uint32_t Thread_ControlBuffer[512];
+osStaticThreadDef_t Thread_ControlControlBlock;
+osThreadId Thread_SensorHandle;
+uint32_t Thread_SensorBuffer[512];
+osStaticThreadDef_t Thread_SensorControlBlock;
+osMessageQId WT931_QueueHandle;
+uint8_t WT931_QueueBuffer[2 * sizeof(IMUData_t)];
+osStaticMessageQDef_t WT931_QueueControlBlock;
+osMessageQId GY39_QueueHandle;
+uint8_t GY39_QueueBuffer[2 * sizeof(CarbinData_t)];
+osStaticMessageQDef_t GY39_QueueControlBlock;
+osSemaphoreId WT931_DONE_semHandle;
+osStaticSemaphoreDef_t WT931_DONE_semControlBlock;
+osSemaphoreId GY39_Done_semHandle;
+osStaticSemaphoreDef_t GY39_Done_semControlBlock;
+osSemaphoreId CMD_DONE_semHandle;
+osStaticSemaphoreDef_t CMD_DONE_semControlBlock;
+
+/* Private function prototypes -----------------------------------------------*/
+/* USER CODE BEGIN FunctionPrototypes */
+
+osThreadId Thread_RecvCmdHandle;
+uint32_t Thread_RecvCmdBuffer[512];
+osStaticThreadDef_t Thread_RecvCmdControlBlock;
+
+
+osMessageQId Attitude_QueueHandle;
+uint8_t Attitude_QueueBuffer[2 * sizeof(IMUData_t)];
+osStaticMessageQDef_t Attitude_QueueControlBlock;
+
+osMutexId MAIN_UART_mutexHandle;
+osStaticMutexDef_t MAIN_UART_mutexControlBlock;
+
+void Thread_RecvCmdEntry(void const *argument);
+
+/* USER CODE END FunctionPrototypes */
+
+void Thread_IdleEntry(void const *argument);
+void Thread_GY39Entry(void const *argument);
+void Thread_WT931Entry(void const *argument);
+void Thread_ControlEntry(void const *argument);
+void Thread_SensorEntry(void const *argument);
+
+void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
+
+/* GetIdleTaskMemory prototype (linked to static allocation support) */
+void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer,
+		StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize);
+
+/* USER CODE BEGIN GET_IDLE_TASK_MEMORY */
+static StaticTask_t xIdleTaskTCBBuffer;
+static StackType_t xIdleStack[configMINIMAL_STACK_SIZE];
+
+void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer,
+		StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize)
+{
+	*ppxIdleTaskTCBBuffer = &xIdleTaskTCBBuffer;
+	*ppxIdleTaskStackBuffer = &xIdleStack[0];
+	*pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
+	/* place for user code */
+}
+/* USER CODE END GET_IDLE_TASK_MEMORY */
+
+/**
+ * @brief  FreeRTOS initialization
+ * @param  None
+ * @retval None
+ */
+void MX_FREERTOS_Init(void)
+{
+	/* USER CODE BEGIN Init */
+
+	/* USER CODE END Init */
+
+	/* USER CODE BEGIN RTOS_MUTEX */
+	/* add mutexes, ... */
+	osMutexStaticDef(MAIN_UART_mutex, &MAIN_UART_mutexControlBlock);
+	MAIN_UART_mutexHandle = osMutexCreate(osMutex(MAIN_UART_mutex));
+	/* USER CODE END RTOS_MUTEX */
+
+	/* Create the semaphores(s) */
+	/* definition and creation of WT931_DONE_sem */
+	osSemaphoreStaticDef(WT931_DONE_sem, &WT931_DONE_semControlBlock);
+	WT931_DONE_semHandle = osSemaphoreCreate(osSemaphore(WT931_DONE_sem), 1);
+
+	/* definition and creation of GY39_Done_sem */
+	osSemaphoreStaticDef(GY39_Done_sem, &GY39_Done_semControlBlock);
+	GY39_Done_semHandle = osSemaphoreCreate(osSemaphore(GY39_Done_sem), 1);
+
+	/* definition and creation of CMD_DONE_sem */
+	osSemaphoreStaticDef(CMD_DONE_sem, &CMD_DONE_semControlBlock);
+	CMD_DONE_semHandle = osSemaphoreCreate(osSemaphore(CMD_DONE_sem), 1);
+
+	/* USER CODE BEGIN RTOS_SEMAPHORES */
+	/* add semaphores, ... */
+	/* USER CODE END RTOS_SEMAPHORES */
+
+	/* USER CODE BEGIN RTOS_TIMERS */
+	/* start timers, add new ones, ... */
+	/* USER CODE END RTOS_TIMERS */
+
+	/* Create the queue(s) */
+	/* definition and creation of WT931_Queue */
+	osMessageQStaticDef(WT931_Queue, 2, IMUData_t, WT931_QueueBuffer,
+			&WT931_QueueControlBlock);
+	WT931_QueueHandle = osMessageCreate(osMessageQ(WT931_Queue), NULL);
+
+	/* definition and creation of GY39_Queue */
+	osMessageQStaticDef(GY39_Queue, 2, CarbinData_t, GY39_QueueBuffer,
+			&GY39_QueueControlBlock);
+	GY39_QueueHandle = osMessageCreate(osMessageQ(GY39_Queue), NULL);
+
+	/* USER CODE BEGIN RTOS_QUEUES */
+	/* add queues, ... */
+	osMessageQStaticDef(Attitude_Queue, 2, IMUData_t, Attitude_QueueBuffer,
+			&Attitude_QueueControlBlock);
+	Attitude_QueueHandle = osMessageCreate(osMessageQ(Attitude_Queue), NULL);
+
+	/* USER CODE END RTOS_QUEUES */
+
+	/* Create the thread(s) */
+	/* definition and creation of Thread_Idle */
+	osThreadStaticDef(Thread_Idle, Thread_IdleEntry, osPriorityLow, 0, 512,
+			Thread_IdleBuffer, &Thread_IdleControlBlock);
+	Thread_IdleHandle = osThreadCreate(osThread(Thread_Idle), NULL);
+
+	/* definition and creation of Thread_GY39 */
+//	osThreadStaticDef(Thread_GY39, Thread_GY39Entry, osPriorityNormal, 0, 512,
+	osThreadStaticDef(Thread_GY39, Thread_GY39Entry, osPriorityBelowNormal, 0,
+			512, Thread_GY39Buffer, &Thread_GY39ControlBlock);
+	Thread_GY39Handle = osThreadCreate(osThread(Thread_GY39), NULL);
+
+	/* definition and creation of Thread_WT931 */
+//	osThreadStaticDef(Thread_WT931, Thread_WT931Entry, osPriorityNormal, 0, 512,
+	osThreadStaticDef(Thread_WT931, Thread_WT931Entry, osPriorityBelowNormal, 0,
+			512, Thread_WT931Buffer, &Thread_WT931ControlBlock);
+	Thread_WT931Handle = osThreadCreate(osThread(Thread_WT931), NULL);
+
+	/* definition and creation of Thread_Control */
+	osThreadStaticDef(Thread_Control, Thread_ControlEntry, osPriorityNormal, 0,
+			512, Thread_ControlBuffer, &Thread_ControlControlBlock);
+	Thread_ControlHandle = osThreadCreate(osThread(Thread_Control), NULL);
+
+	/* definition and creation of Thread_Sensor */
+	osThreadStaticDef(Thread_Sensor, Thread_SensorEntry, osPriorityNormal, 0,
+			512, Thread_SensorBuffer, &Thread_SensorControlBlock);
+	Thread_SensorHandle = osThreadCreate(osThread(Thread_Sensor), NULL);
+
+	/* USER CODE BEGIN RTOS_THREADS */
+	/* add threads, ... */
+	osThreadStaticDef(Thread_RecvCmd, Thread_RecvCmdEntry, osPriorityBelowNormal, 0,
+			512, Thread_RecvCmdBuffer, &Thread_RecvCmdControlBlock);
+	Thread_RecvCmdHandle = osThreadCreate(osThread(Thread_RecvCmd), NULL);
+	/* USER CODE END RTOS_THREADS */
+
+}
+
+/* USER CODE BEGIN Header_Thread_IdleEntry */
+/**
+ * @brief  Function implementing the Thread_Idle thread.
+ * @param  argument: Not used
+ * @retval None
+ */
+/* USER CODE END Header_Thread_IdleEntry */
+void Thread_IdleEntry(void const *argument)
+{
+	/* USER CODE BEGIN Thread_IdleEntry */
+	/* Infinite loop */
+	for (;;)
+	{
+//		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+		osDelay(1000);
+	}
+	/* USER CODE END Thread_IdleEntry */
+}
+
+/* USER CODE BEGIN Header_Thread_GY39Entry */
+/**
+ * @brief Function implementing the Thread_GY39 thread.
+ * @param argument: Not used
+ * @retval None
+ */
+/* USER CODE END Header_Thread_GY39Entry */
+void Thread_GY39Entry(void const *argument)
+{
+	/* USER CODE BEGIN Thread_GY39Entry */
+	uint8_t GY39_TxBuffer[TEMPER_UART_TXLen] =
+	{ 0 };
+	uint8_t GY39_RxBuffer[TEMPER_UART_RXLen] =
+	{ 0 };
+	CarbinData_t gy39_data;
+
+	InitGY39(GY39_TxBuffer);
+	HAL_UART_Transmit_DMA(&TEMPER_UART, GY39_TxBuffer, sizeof(GY39_TxBuffer));
+
+	__HAL_UART_ENABLE_IT(&TEMPER_UART, UART_IT_IDLE);
+	HAL_UART_Receive_DMA(&TEMPER_UART, GY39_RxBuffer, sizeof(GY39_RxBuffer));
+
+	/* Infinite loop */
+	for (;;)
+	{
+		if (xSemaphoreTake(GY39_Done_semHandle, 0) == pdTRUE)
+		{
+			gy39_data = ReceiveGY39(GY39_RxBuffer);
+
+//			printf("t:%d, %d, %d\r\n", gy39_data.CarbinBarometric,
+//					gy39_data.CarbinHumidity, gy39_data.CarbinTemperature);
+			xQueueSendToFront(GY39_QueueHandle, (void* )&gy39_data, 0);
+
+			memset(&GY39_RxBuffer, 0, sizeof(GY39_RxBuffer));
+			__HAL_UART_ENABLE_IT(&TEMPER_UART, UART_IT_IDLE);
+			HAL_UART_Receive_DMA(&TEMPER_UART, GY39_RxBuffer,
+					sizeof(GY39_RxBuffer));
+		}
+
+		osDelay(100);
+	}
+	/* USER CODE END Thread_GY39Entry */
+}
+
+/* USER CODE BEGIN Header_Thread_WT931Entry */
+/**
+ * @brief Function implementing the Thread_WT931 thread.
+ * @param argument: Not used
+ * @retval None
+ */
+/* USER CODE END Header_Thread_WT931Entry */
+void Thread_WT931Entry(void const *argument)
+{
+	/* USER CODE BEGIN Thread_WT931Entry */
+	uint8_t WT931_RxBuffer[2 * AXIS_UART_RXLen] =
+	{ 0 };
+	IMUData_t wt931_data;
+
+	__HAL_UART_ENABLE_IT(&AXIS_UART, UART_IT_IDLE);
+	HAL_UART_Receive_DMA(&AXIS_UART, WT931_RxBuffer, sizeof(WT931_RxBuffer));
+
+	/* Infinite loop */
+	for (;;)
+	{
+		if (xSemaphoreTake(WT931_DONE_semHandle, 0) == pdTRUE)
+		{
+			wt931_data = ReceiveWT931(WT931_RxBuffer);
+
+//			printf("a:%d, %d, %d\r\n", wt931_data.EulerAngle[0],
+//					wt931_data.EulerAngle[1], wt931_data.EulerAngle[2]);
+			xQueueSendToFront(WT931_QueueHandle, (void* )&wt931_data, 0);
+//			xQueueSendToFront(Attitude_QueueHandle, (void* )&wt931_data, 0);
+
+			memset(&WT931_RxBuffer, 0, sizeof(WT931_RxBuffer));
+			__HAL_UART_ENABLE_IT(&AXIS_UART, UART_IT_IDLE);
+			HAL_UART_Receive_DMA(&AXIS_UART, WT931_RxBuffer,
+					sizeof(WT931_RxBuffer));
+		}
+		osDelay(100);
+	}
+	/* USER CODE END Thread_WT931Entry */
+}
+
+/* USER CODE BEGIN Header_Thread_ControlEntry */
+/**
+ * @brief Function implementing the Thread_Control thread.
+ * @param argument: Not used
+ * @retval None
+ */
+/* USER CODE END Header_Thread_ControlEntry */
+void Thread_ControlEntry(void const *argument)
+{
+	/* USER CODE BEGIN Thread_ControlEntry */
+	uint8_t Command_RxBuffer[Master_UART_RXLen * 2] =
+	{ 0x25, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x00, 0x32, 0x05, 0xDC, 0x05,
+			0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC,
+			0x05, 0xDC, 0x05, 0xDC, 0x00, 0x00, 0x21, 0x25, 0x05, 0xDC, 0x05,
+			0xDC, 0x05, 0xDC, 0x00, 0x32, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC,
+			0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05, 0xDC, 0x05,
+			0xDC, 0x00, 0x00, 0x21 };
+	static ControlData_t control_data;
+
+	static uint8_t IS_SIDEPUSH = NORMAL_MODE;
+//	static uint8_t IS_ORBIT = ROV_FALSE;
+//	static uint8_t IS_FIRST_ORBIT = ROV_FALSE;
+
+//	struct Algorithm_PID self_stable_pid;
+//	struct Algorithm_PID orbit_pid;
+//	int32_t pid_cal = 0;
+//	int32_t ss_cal = 0;
+//	IMUData_t attitude_detect;
+//	int32_t origin_target;
+
+	static vu8 relay_controller;
+	static PwmVal_t pwm_controller;
+
+	control_data.FrameHead = 0x25;
+	control_data.StraightNum = 0x05DC;
+	control_data.RotateNum = 0x05DC;
+	control_data.VerticalNum = 0x05DC;
+	control_data.ConveyNum = 0x05DC;
+	control_data.ArmNum[0] = 0x05DC;
+	control_data.ArmNum[1] = 0x05DC;
+	control_data.ArmNum[2] = 0x05DC;
+	control_data.ArmNum[3] = 0x05DC;
+	control_data.ArmNum[4] = 0x05DC;
+	control_data.ArmNum[5] = 0x05DC;
+	control_data.LightNum = 0x05DC;
+	control_data.PanNum = 0x05DC;
+	control_data.RestNum = 0x05DC;
+	control_data.FrameEnd = 0x21;
+
+	pwm_controller.ArmServo[0] = (vu32) 1500;
+	pwm_controller.ArmServo[1] = (vu32) 1500;
+	pwm_controller.ArmServo[2] = (vu32) 1500;
+	pwm_controller.ArmServo[3] = (vu32) 1500;
+	pwm_controller.ArmServo[4] = (vu32) 1500;
+	pwm_controller.ArmServo[5] = (vu32) 1500;
+	pwm_controller.ConveyServo = (vu32) 1500;
+	pwm_controller.HorizontalThruster[0] = (vu32) 1500;
+	pwm_controller.HorizontalThruster[1] = (vu32) 1500;
+	pwm_controller.HorizontalThruster[2] = (vu32) 1500;
+	pwm_controller.HorizontalThruster[3] = (vu32) 1500;
+	pwm_controller.VerticalThruster[0] = (vu32) 1500;
+	pwm_controller.VerticalThruster[1] = (vu32) 1500;
+	pwm_controller.LightServo = (vu32) 50;
+	pwm_controller.PanServo = (vu32) 1500;
+	pwm_controller.RestServo = (vu32) 1500;
+
+	__HAL_UART_ENABLE_IT(&Master_UART, UART_IT_IDLE);
+	HAL_UART_Receive_DMA(&Master_UART, Command_RxBuffer,
+			sizeof(Command_RxBuffer));
+
+//	initPID(&orbit_pid, PID_POSITION_MODE, 0.2);
+//	initPID(&self_stable_pid, PID_ERROR_MODE, 21.84);
+//	orbit_pid.Kp = -0.005;
+//	orbit_pid.Ki = 0.05;
+//	orbit_pid.Kd = 0.01;
+//	self_stable_pid.Kp = 0.03;
+//	self_stable_pid.Ki = 0.2;
+//	self_stable_pid.Kd = 0.1;
+
+	/* Infinite loop */
+	for (;;)
+	{
+		if (xSemaphoreTake(CMD_DONE_semHandle, 0) == pdTRUE)
+		{
+			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+			control_data = CaptureControlData(Command_RxBuffer);
+
+			//Mode Selection
+			//check side-push
+			if (control_data.Mode & SIDE_PUSH_CODE)
+			{
+				IS_SIDEPUSH = SIDEPUSH_MODE; //ROV_TRUE
+			}
+			else
+			{
+				IS_SIDEPUSH = NORMAL_MODE; //ROV_FALSE
+			}
+			//check relay control
+			if (control_data.Mode & POWER_CODE)
+			{
+				relay_controller = (vu8) GPIO_PIN_SET; //Relay ON
+			}
+			else
+			{
+				relay_controller = (vu8) GPIO_PIN_RESET; //Relay OFF
+			}
+//			//check orbit
+//			if (control_data.Mode & DIR_CODE)
+//			{
+//				if (IS_ORBIT == ROV_FALSE)
+//				{
+//					IS_FIRST_ORBIT = ROV_TRUE;
+//					IS_ORBIT = ROV_TRUE;
+//				}
+//				else
+//				{
+//					IS_FIRST_ORBIT = ROV_FALSE;
+//					IS_ORBIT = ROV_TRUE;
+//				}
+//			}
+//			else
+//			{
+//				IS_FIRST_ORBIT = ROV_FALSE;
+//				IS_ORBIT = ROV_FALSE;
+//			}
+
+			ControlDataAnalysis(control_data, &pwm_controller, IS_SIDEPUSH);
+
+			RestrictPwmValue((pwm_controller.HorizontalThruster[0]), 700, 2300);
+			RestrictPwmValue((pwm_controller.HorizontalThruster[1]), 700, 2300);
+			RestrictPwmValue((pwm_controller.HorizontalThruster[2]), 700, 2300);
+			RestrictPwmValue((pwm_controller.HorizontalThruster[3]), 700, 2300);
+			RestrictPwmValue((pwm_controller.VerticalThruster[0]), 700, 2300);
+			RestrictPwmValue((pwm_controller.VerticalThruster[1]), 700, 2300);
+			RestrictPwmValue((pwm_controller.LightServo), 0, 2000);
+			RestrictPwmValue((pwm_controller.ConveyServo), 500, 2500);
+			RestrictPwmValue((pwm_controller.PanServo), 500, 2500);
+
+			if ((pwm_controller.HorizontalThruster[0] > 1470)
+					&& (pwm_controller.HorizontalThruster[0] < 1530))
+			{
+				pwm_controller.HorizontalThruster[0] = 1500;
+			}
+			if ((pwm_controller.HorizontalThruster[1] > 1470)
+					&& (pwm_controller.HorizontalThruster[1] < 1530))
+			{
+				pwm_controller.HorizontalThruster[1] = 1500;
+			}
+			if ((pwm_controller.HorizontalThruster[2] > 1470)
+					&& (pwm_controller.HorizontalThruster[2] < 1530))
+			{
+				pwm_controller.HorizontalThruster[2] = 1500;
+			}
+			if ((pwm_controller.HorizontalThruster[3] > 1470)
+					&& (pwm_controller.HorizontalThruster[3] < 1530))
+			{
+				pwm_controller.HorizontalThruster[3] = 1500;
+			}
+			if ((pwm_controller.VerticalThruster[0] > 1470)
+					&& (pwm_controller.VerticalThruster[0] < 1530))
+			{
+				pwm_controller.VerticalThruster[0] = 1500;
+			}
+			if ((pwm_controller.VerticalThruster[1] > 1470)
+					&& (pwm_controller.VerticalThruster[1] < 1530))
+			{
+				pwm_controller.VerticalThruster[1] = 1500;
+			}
+
+			if ((pwm_controller.ConveyServo > 1470)
+					&& (pwm_controller.ConveyServo < 1530))
+			{
+				pwm_controller.ConveyServo = 1500;
+			}
+
+			HAL_GPIO_WritePin(Relay_GPIO_Port, Relay_Pin, relay_controller);
+
+			TIM1->CCR2 = pwm_controller.VerticalThruster[0]; //C2 'J8'
+			TIM2->CCR2 = pwm_controller.VerticalThruster[1]; //C1 'J3'
+
+			TIM8->CCR3 = pwm_controller.HorizontalThruster[1]; //A1 'J5'
+			TIM2->CCR3 = pwm_controller.HorizontalThruster[0]; //A2 'J2'
+
+			TIM1->CCR1 = pwm_controller.HorizontalThruster[2]; //B1 'J9'
+			TIM1->CCR3 = pwm_controller.HorizontalThruster[3]; //B2 'J6'
+
+			TIM2->CCR1 = pwm_controller.RestServo; //Pan(not used)
+
+			TIM3->CCR1 = pwm_controller.ArmServo[2]; //Middle Arm
+			TIM3->CCR2 = pwm_controller.ArmServo[1]; //Main Arm
+			TIM3->CCR3 = pwm_controller.ArmServo[0]; //Horizental Arm
+
+			TIM4->CCR2 = pwm_controller.ArmServo[5]; //Rest Machine Arm
+			TIM4->CCR3 = pwm_controller.LightServo; //Light
+			TIM4->CCR4 = (vu32) 1500; //hardware float(not used)
+
+			TIM5->CCR1 = pwm_controller.ConveyServo; //Convey
+			TIM5->CCR2 = pwm_controller.ArmServo[3]; //Front Arm
+
+			//		TIM12->CCR1 = (vu32)1500; //hardware float(not used)
+
+			TIM15->CCR1 = pwm_controller.ArmServo[4]; //Grab Arm
+			TIM15->CCR2 = pwm_controller.PanServo; //Pan
+
+			if (xSemaphoreTake(MAIN_UART_mutexHandle, 5))
+			{
+				memset(&Command_RxBuffer, 0, sizeof(Command_RxBuffer));
+				__HAL_UART_ENABLE_IT(&Master_UART, UART_IT_IDLE);
+				HAL_UART_Receive_DMA(&Master_UART, Command_RxBuffer,
+						sizeof(Command_RxBuffer));
+				xSemaphoreGive(MAIN_UART_mutexHandle);
+			}
+//			memset(&Command_RxBuffer, 0, sizeof(Command_RxBuffer));
+//			__HAL_UART_ENABLE_IT(&Master_UART, UART_IT_IDLE);
+//			HAL_UART_Receive_DMA(&Master_UART, Command_RxBuffer,
+//					sizeof(Command_RxBuffer));
+		}
+
+//		xQueueReceive(Attitude_QueueHandle, &attitude_detect, 0); //recv 9-axis data to calculate attitude
+
+		//self stable
+//		ss_cal = (int32_t) calculatePID_position(&self_stable_pid,
+//				self_stable_pid.FeedBack, attitude_detect.EulerAngle[2]);
+
+		//orbit
+//		if (IS_ORBIT == ROV_TRUE)
+//		{
+//			if (IS_FIRST_ORBIT == ROV_TRUE) //first orbit, get original attitude data
+//			{
+//				xQueueReceive(Attitude_QueueHandle, &attitude_detect, 0); //recv 9-axis data to calculate attitude
+//				origin_target = attitude_detect.EulerAngle[0];
+//			}
+//			else //normal orbit mode, catch data for many times
+//			{
+//				pid_cal = (int32_t) calculatePID_position(&orbit_pid,
+//						origin_target, attitude_detect.EulerAngle[0]); //orbit: X-axis
+////				printf("%d, %d, %d\r\n", origin_target,
+////						attitude_detect.EulerAngle[0], pid_cal);
+//				MoveControl(&pwm_controller, control_data.StraightNum,
+//						control_data.RotateNum + pid_cal,
+//						control_data.VerticalNum, NORMAL_MODE);
+//			}
+//		}
+////		else
+////		{
+//////			printf("stable: %d, %d, %l\r\n", attitude_detect.EulerAngle[2],
+//////					(int32_t)self_stable_pid.FeedBack, ss_cal);
+////		}
+
+		osDelay(10);
+	}
+	/* USER CODE END Thread_ControlEntry */
+}
+
+/* USER CODE BEGIN Header_Thread_SensorEntry */
+/**
+ * @brief Function implementing the Thread_Sensor thread.
+ * @param argument: Not used
+ * @retval None
+ */
+/* USER CODE END Header_Thread_SensorEntry */
+void Thread_SensorEntry(void const *argument)
+{
+	/* USER CODE BEGIN Thread_SensorEntry */
+	IMUData_t wt931_data;
+	CarbinData_t gy39_data;
+	ReportData_t report_data;
+	report_data.FrameHead = 0x25;
+	report_data.CabinFunction = 0;
+	report_data.FrameEnd = 0xFFFF;
+	report_data.IdTest = 0x00;
+
+	uint8_t Report_TxBuffer[Master_UART_TXLen];
+	/* Infinite loop */
+	for (;;)
+	{
+		xQueueReceive(GY39_QueueHandle, &gy39_data, 0);
+		xQueueReceive(WT931_QueueHandle, &wt931_data, 0);
+
+//		printf("%d,%d,%d,%d,%d\r\n",wt931_data.EulerAngle[0],wt931_data.EulerAngle[1],wt931_data.EulerAngle[2],gy39_data.CarbinTemperature,gy39_data.CarbinHumidity);
+
+		report_data.AccNum[0] = wt931_data.Acceleration[0];
+		report_data.AccNum[1] = wt931_data.Acceleration[1];
+		report_data.AccNum[2] = wt931_data.Acceleration[2];
+		report_data.RotNum[0] = wt931_data.AngularSpeed[0];
+		report_data.RotNum[1] = wt931_data.AngularSpeed[1];
+		report_data.RotNum[2] = wt931_data.AngularSpeed[2];
+		report_data.EulNum[0] = wt931_data.EulerAngle[0];
+		report_data.EulNum[1] = wt931_data.EulerAngle[1];
+		report_data.EulNum[2] = wt931_data.EulerAngle[2];
+		report_data.MagNum[0] = wt931_data.MagneticValue[0];
+		report_data.MagNum[1] = wt931_data.MagneticValue[1];
+		report_data.MagNum[2] = wt931_data.MagneticValue[2];
+
+		report_data.CabinTemperature = gy39_data.CarbinTemperature;
+		report_data.CabinBarometric = gy39_data.CarbinBarometric;
+		report_data.CabinHumidity = gy39_data.CarbinHumidity;
+
+		report_data.WaterDetect = HAL_GPIO_ReadPin(WaterDet_GPIO_Port,
+		WaterDet_Pin);
+
+		CaptureReportData(report_data, Report_TxBuffer);
+
+//		HAL_UART_Transmit(&Master_UART, Report_TxBuffer, sizeof(Report_TxBuffer), 0xff);
+		if (xSemaphoreTake(MAIN_UART_mutexHandle, 5))
+		{
+			HAL_UART_Transmit_DMA(&Master_UART, Report_TxBuffer,
+					sizeof(Report_TxBuffer));
+			xSemaphoreGive(MAIN_UART_mutexHandle);
+		}
+
+		osDelay(300);
+	}
+	/* USER CODE END Thread_SensorEntry */
+}
+
+/* Private application code --------------------------------------------------*/
+/* USER CODE BEGIN Application */
+
+void Thread_RecvCmdEntry(void const *argument)
+{
+
+}
+
+/* USER CODE END Application */

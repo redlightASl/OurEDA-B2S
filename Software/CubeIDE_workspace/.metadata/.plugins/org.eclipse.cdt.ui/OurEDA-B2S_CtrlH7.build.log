@@ -1,10 +1,10 @@
-16:41:55 **** Incremental Build of configuration Debug for project OurEDA-B2S_CtrlH7 ****
+04:36:07 **** Incremental Build of configuration Debug for project OurEDA-B2S_CtrlH7 ****
 make -j12 all 
 arm-none-eabi-size   OurEDA-B2S_CtrlH7.elf 
    text	   data	    bss	    dec	    hex	filename
-  59520	     28	  40636	 100184	  18758	OurEDA-B2S_CtrlH7.elf
+  60928	     60	  40804	 101792	  18da0	OurEDA-B2S_CtrlH7.elf
 Finished building: default.size.stdout
  
 
-16:41:55 Build Finished. 0 errors, 0 warnings. (took 337ms)
+04:36:07 Build Finished. 0 errors, 0 warnings. (took 259ms)
 

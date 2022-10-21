@@ -110,7 +110,7 @@ void HardFault_Handler(void)
 	while (1)
 	{
 		/* USER CODE BEGIN W1_HardFault_IRQn 0 */
-		HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET); //error: light up
 		/* USER CODE END W1_HardFault_IRQn 0 */
 	}
 }
