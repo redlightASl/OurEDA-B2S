@@ -23056,11 +23056,11 @@ static void UARTEx_SetNbDataToProcess(UART_HandleTypeDef *huart)
  80097ac:	0800f7b0 	.word	0x0800f7b0
 
 080097b0 <MoveControl>:
+#include "BasicCtrl.h"
 #include <math.h>
 
-
-void MoveControl(PwmVal_t* ThrusterTemp, uint16_t StraightNum, uint16_t RotateNum,
-		uint16_t VerticalNum, uint8_t ModeNum)
+void MoveControl(PwmVal_t *ThrusterTemp, uint16_t StraightNum,
+		uint16_t RotateNum, uint16_t VerticalNum, uint8_t ModeNum)
 {
  80097b0:	b480      	push	{r7}
  80097b2:	b087      	sub	sp, #28
@@ -23352,17 +23352,20 @@ void MoveControl(PwmVal_t* ThrusterTemp, uint16_t StraightNum, uint16_t RotateNu
  80099a4:	893a      	ldrh	r2, [r7, #8]
  80099a6:	68fb      	ldr	r3, [r7, #12]
  80099a8:	605a      	str	r2, [r3, #4]
-		ThrusterTemp->HorizontalThruster[2] = (uint32_t) ((2
-				* PWM_MIDDLE_POSITION) - RotateNum);
+//		ThrusterTemp->HorizontalThruster[2] = (uint32_t) ((2
+//				* PWM_MIDDLE_POSITION) - RotateNum);
+//		ThrusterTemp->HorizontalThruster[3] = (uint32_t) (RotateNum);
+		ThrusterTemp->HorizontalThruster[2] = (uint32_t) (RotateNum);
  80099aa:	893a      	ldrh	r2, [r7, #8]
- 80099ac:	f640 33b8 	movw	r3, #3000	; 0xbb8
- 80099b0:	1a9b      	subs	r3, r3, r2
-		ThrusterTemp->HorizontalThruster[2] = (uint32_t) ((2
- 80099b2:	461a      	mov	r2, r3
- 80099b4:	68fb      	ldr	r3, [r7, #12]
- 80099b6:	609a      	str	r2, [r3, #8]
-		ThrusterTemp->HorizontalThruster[3] = (uint32_t) (RotateNum);
- 80099b8:	893a      	ldrh	r2, [r7, #8]
+ 80099ac:	68fb      	ldr	r3, [r7, #12]
+ 80099ae:	609a      	str	r2, [r3, #8]
+		ThrusterTemp->HorizontalThruster[3] = (uint32_t) ((2
+				* PWM_MIDDLE_POSITION) - RotateNum);
+ 80099b0:	893a      	ldrh	r2, [r7, #8]
+ 80099b2:	f640 33b8 	movw	r3, #3000	; 0xbb8
+ 80099b6:	1a9b      	subs	r3, r3, r2
+		ThrusterTemp->HorizontalThruster[3] = (uint32_t) ((2
+ 80099b8:	461a      	mov	r2, r3
  80099ba:	68fb      	ldr	r3, [r7, #12]
  80099bc:	60da      	str	r2, [r3, #12]
 		//Veritical Control
@@ -23398,7 +23401,8 @@ void MoveControl(PwmVal_t* ThrusterTemp, uint16_t StraightNum, uint16_t RotateNu
 
 080099dc <ControlDataAnalysis>:
 
-void ControlDataAnalysis(ControlData_t controller, PwmVal_t* temp_pwm, uint8_t ModeNum)
+void ControlDataAnalysis(ControlData_t controller, PwmVal_t *temp_pwm,
+		uint8_t ModeNum)
 {
  80099dc:	b084      	sub	sp, #16
  80099de:	b580      	push	{r7, lr}
@@ -23822,7 +23826,7 @@ void CaptureReportData(ReportData_t SendData, uint8_t *ReportTransmit)
 //	return CaptureData;
 //}
 
-void CaptureControlData(ControlData_t* CaptureData, uint8_t *CommandReceive)
+void CaptureControlData(ControlData_t *CaptureData, uint8_t *CommandReceive)
 {
  8009c7e:	b480      	push	{r7}
  8009c80:	b085      	sub	sp, #20
@@ -33674,7 +33678,8 @@ void Thread_SensorEntry(void const *argument)
  800d3a2:	4908      	ldr	r1, [pc, #32]	; (800d3c4 <Thread_SensorEntry+0x124>)
  800d3a4:	4808      	ldr	r0, [pc, #32]	; (800d3c8 <Thread_SensorEntry+0x128>)
  800d3a6:	f7fa f987 	bl	80076b8 <HAL_UART_Transmit_DMA>
-								sizeof(Report_TxBuffer));
+//						HAL_UART_Transmit(&Master_UART, Report_TxBuffer,
+//														sizeof(Report_TxBuffer), 0xff);
 					}
 				}
 			}
@@ -33876,8 +33881,9 @@ void Thread_RecvCmdEntry(void const *argument)
  800d512:	f7fd f9ad 	bl	800a870 <xQueueGenericSend>
 			}
 		}
-		osDelay(2); //wonderful delay
- 800d516:	2002      	movs	r0, #2
+//		osDelay(2); //wonderful delay
+		osDelay(10);////////////////////////////////////////////////////////////////////这个位置改了
+ 800d516:	200a      	movs	r0, #10
  800d518:	f7fc fee9 	bl	800a2ee <osDelay>
 		if (xSemaphoreTake(CMD_DONE_semHandle, 0) == pdTRUE)
  800d51c:	e7ba      	b.n	800d494 <Thread_RecvCmdEntry+0xb4>

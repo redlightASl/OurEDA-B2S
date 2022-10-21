@@ -5,4 +5,4 @@ freertos.c:255:6:Thread_GY39Entry	64	static
 freertos.c:299:6:Thread_WT931Entry	160	static
 freertos.c:338:6:Thread_ControlEntry	48	static
 freertos.c:571:6:Thread_SensorEntry	136	static
-freertos.c:643:6:Thread_RecvCmdEntry	88	static
+freertos.c:645:6:Thread_RecvCmdEntry	88	static

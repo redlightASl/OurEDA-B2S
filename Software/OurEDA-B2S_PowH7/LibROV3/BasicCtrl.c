@@ -1,9 +1,8 @@
 #include "BasicCtrl.h"
 #include <math.h>
 
-
-void MoveControl(PwmVal_t* ThrusterTemp, uint16_t StraightNum, uint16_t RotateNum,
-		uint16_t VerticalNum, uint8_t ModeNum)
+void MoveControl(PwmVal_t *ThrusterTemp, uint16_t StraightNum,
+		uint16_t RotateNum, uint16_t VerticalNum, uint8_t ModeNum)
 {
 	uint8_t AFlag = 0;
 	uint8_t BFlag = 0;
@@ -71,9 +70,12 @@ void MoveControl(PwmVal_t* ThrusterTemp, uint16_t StraightNum, uint16_t RotateNu
 		ThrusterTemp->HorizontalThruster[0] = (uint32_t) ((2
 				* PWM_MIDDLE_POSITION) - RotateNum);
 		ThrusterTemp->HorizontalThruster[1] = (uint32_t) (RotateNum);
-		ThrusterTemp->HorizontalThruster[2] = (uint32_t) ((2
+//		ThrusterTemp->HorizontalThruster[2] = (uint32_t) ((2
+//				* PWM_MIDDLE_POSITION) - RotateNum);
+//		ThrusterTemp->HorizontalThruster[3] = (uint32_t) (RotateNum);
+		ThrusterTemp->HorizontalThruster[2] = (uint32_t) (RotateNum);
+		ThrusterTemp->HorizontalThruster[3] = (uint32_t) ((2
 				* PWM_MIDDLE_POSITION) - RotateNum);
-		ThrusterTemp->HorizontalThruster[3] = (uint32_t) (RotateNum);
 		//Veritical Control
 		ThrusterTemp->VerticalThruster[0] = (uint32_t) (VerticalNum);
 		ThrusterTemp->VerticalThruster[1] = (uint32_t) (VerticalNum);
@@ -284,7 +286,8 @@ void MoveControl(PwmVal_t* ThrusterTemp, uint16_t StraightNum, uint16_t RotateNu
 #endif
 }
 
-void ControlDataAnalysis(ControlData_t controller, PwmVal_t* temp_pwm, uint8_t ModeNum)
+void ControlDataAnalysis(ControlData_t controller, PwmVal_t *temp_pwm,
+		uint8_t ModeNum)
 {
 	MoveControl(temp_pwm, controller.StraightNum, controller.RotateNum,
 			controller.VerticalNum, ModeNum);
@@ -416,7 +419,7 @@ void CaptureReportData(ReportData_t SendData, uint8_t *ReportTransmit)
 //	return CaptureData;
 //}
 
-void CaptureControlData(ControlData_t* CaptureData, uint8_t *CommandReceive)
+void CaptureControlData(ControlData_t *CaptureData, uint8_t *CommandReceive)
 {
 	for (uint8_t i = 0; i < Master_UART_RXLen; i++)
 	{
@@ -461,5 +464,4 @@ void CaptureControlData(ControlData_t* CaptureData, uint8_t *CommandReceive)
 		}
 	}
 }
-
 

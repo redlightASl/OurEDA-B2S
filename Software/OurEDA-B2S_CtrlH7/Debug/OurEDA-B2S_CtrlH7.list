@@ -5019,9 +5019,10 @@ void MX_UART8_Init(void)
  8002428:	4b22      	ldr	r3, [pc, #136]	; (80024b4 <MX_UART8_Init+0x90>)
  800242a:	4a23      	ldr	r2, [pc, #140]	; (80024b8 <MX_UART8_Init+0x94>)
  800242c:	601a      	str	r2, [r3, #0]
-  huart8.Init.BaudRate = 9600;
+//  huart8.Init.BaudRate = 9600;
+  huart8.Init.BaudRate = 115200;
  800242e:	4b21      	ldr	r3, [pc, #132]	; (80024b4 <MX_UART8_Init+0x90>)
- 8002430:	f44f 5216 	mov.w	r2, #9600	; 0x2580
+ 8002430:	f44f 32e1 	mov.w	r2, #115200	; 0x1c200
  8002434:	605a      	str	r2, [r3, #4]
   huart8.Init.WordLength = UART_WORDLENGTH_8B;
  8002436:	4b1f      	ldr	r3, [pc, #124]	; (80024b4 <MX_UART8_Init+0x90>)

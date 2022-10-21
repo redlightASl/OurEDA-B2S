@@ -625,6 +625,8 @@ void Thread_SensorEntry(void const *argument)
 					{
 						HAL_UART_Transmit_DMA(&Master_UART, Report_TxBuffer,
 								sizeof(Report_TxBuffer));
+//						HAL_UART_Transmit(&Master_UART, Report_TxBuffer,
+//														sizeof(Report_TxBuffer), 0xff);
 					}
 				}
 			}
@@ -688,8 +690,8 @@ void Thread_RecvCmdEntry(void const *argument)
 				xSemaphoreGive(MAIN_UART_mutexHandle);
 			}
 		}
-		osDelay(2); //wonderful delay
-//		osDelay(50);////////////////////////////////////////////////////////////////////这个位置改了
+//		osDelay(2); //wonderful delay
+		osDelay(10);////////////////////////////////////////////////////////////////////这个位置改了
 	}
 }
 
